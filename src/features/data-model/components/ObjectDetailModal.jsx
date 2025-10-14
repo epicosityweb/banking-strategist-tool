@@ -3,7 +3,7 @@ import { X, Edit2 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import FieldTable from './FieldTable';
 import FieldModal from './FieldModal';
-import { useProject } from '../../../context/ProjectContext';
+import { useProject } from '../../../context/ProjectContext-v2';
 
 function ObjectDetailModal({ isOpen, onClose, object }) {
   const { dispatch } = useProject();

@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Building2, Save, Clock } from 'lucide-react';
-import { useProject } from '../../context/ProjectContext';
+import { useProject } from '../../context/ProjectContext-v2';
 
 function Header() {
-  const { state, dispatch } = useProject();
+  const { state, saveProject } = useProject();
   const { projectId } = useParams();
 
-  const handleSave = () => {
-    dispatch({ type: 'SAVE_PROJECT' });
+  const handleSave = async () => {
+    await saveProject();
   };
 
   const currentProjectData = state.projects.find(p => p.id === projectId);

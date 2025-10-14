@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Database } from 'lucide-react';
-import { useProject } from '../../context/ProjectContext';
+import { useProject } from '../../context/ProjectContext-v2';
 import Card from '../../components/ui/Card';
 import ObjectCard from './components/ObjectCard';
 import TemplateLibrary from './components/TemplateLibrary';
@@ -9,13 +9,15 @@ import DeleteObjectModal from './components/DeleteObjectModal';
 import ObjectDetailModal from './components/ObjectDetailModal';
 
 function DataModel() {
-  const { state, dispatch } = useProject();
+  const { state, duplicateCustomObject } = useProject();
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [selectedObject, setSelectedObject] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showObjectModal, setShowObjectModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const objects = state.dataModel?.objects || [];
   const associations = state.dataModel?.associations || [];
@@ -36,12 +38,21 @@ function DataModel() {
     setShowObjectModal(true);
   };
 
-  const handleDuplicateObject = (object) => {
-    // Create a duplicate with new ID
-    dispatch({
-      type: 'DUPLICATE_OBJECT',
-      payload: object.id,
-    });
+  const handleDuplicateObject = async (object) => {
+    setIsLoading(true);
+    setError(null);
+
+    const { data, error: duplicateError } = await duplicateCustomObject(object.id);
+
+    setIsLoading(false);
+
+    if (duplicateError) {
+      setError(`Failed to duplicate object: ${duplicateError}`);
+      return;
+    }
+
+    // Success - object was duplicated (optimistic update already applied)
+    console.log('Object duplicated successfully:', data.label);
   };
 
   const handleDeleteObject = (object) => {
@@ -72,6 +83,26 @@ function DataModel() {
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-700 hover:text-red-900 font-bold text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Loading Indicator */}
+      {isLoading && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+          Processing...
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

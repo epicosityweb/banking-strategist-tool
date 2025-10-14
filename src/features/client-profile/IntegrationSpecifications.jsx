@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useProject } from '../../context/ProjectContext';
+import { useProject } from '../../context/ProjectContext-v2';
 import Card from '../../components/ui/Card';
 import FormField from '../../components/ui/FormField';
 import { AlertTriangle, CheckCircle2, Shield } from 'lucide-react';

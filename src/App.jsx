@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ProjectProvider } from './context/ProjectContext';
+import { ProjectProvider } from './context/ProjectContext-v2';
 import Layout from './components/layout/Layout';
 import Dashboard from './features/project-management/Dashboard';
 import ClientProfile from './features/client-profile/ClientProfile';

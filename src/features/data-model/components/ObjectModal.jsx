@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
-import { useProject } from '../../../context/ProjectContext';
+import { useProject } from '../../../context/ProjectContext-v2';
 import { generateId } from '../../../utils/idGenerator';
 import { generateApiName, validateObjectName, validateApiName } from '../../../schemas/objectSchema';
 import FormField from '../../../components/ui/FormField';

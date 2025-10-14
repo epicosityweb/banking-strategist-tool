@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FolderOpen, Trash2, Calendar } from 'lucide-react';
-import { useProject } from '../../context/ProjectContext';
+import { useProject } from '../../context/ProjectContext-v2';
 import Card from '../../components/ui/Card';
 
 function Dashboard() {

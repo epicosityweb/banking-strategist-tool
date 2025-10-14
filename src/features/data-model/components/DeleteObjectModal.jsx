@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
-import { useProject } from '../../../context/ProjectContext';
+import { useProject } from '../../../context/ProjectContext-v2';
 import { checkObjectDependencies } from '../../../utils/dependencyChecker';
 
 function DeleteObjectModal({ isOpen, onClose, object }) {
