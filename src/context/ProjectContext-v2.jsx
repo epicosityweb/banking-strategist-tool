@@ -205,6 +205,44 @@ function projectReducer(state, action) {
         tags: { ...state.tags, ...action.payload },
       };
 
+    case 'ADD_TAG':
+      return {
+        ...state,
+        tags: {
+          ...state.tags,
+          custom: [...(state.tags.custom || []), action.payload],
+        },
+      };
+
+    case 'UPDATE_TAG':
+      return {
+        ...state,
+        tags: {
+          ...state.tags,
+          custom: (state.tags.custom || []).map((tag) =>
+            tag.id === action.payload.id ? action.payload : tag
+          ),
+        },
+      };
+
+    case 'DELETE_TAG':
+      return {
+        ...state,
+        tags: {
+          ...state.tags,
+          custom: (state.tags.custom || []).filter((tag) => tag.id !== action.payload),
+        },
+      };
+
+    case 'ADD_TAG_FROM_LIBRARY':
+      return {
+        ...state,
+        tags: {
+          ...state.tags,
+          library: [...(state.tags.library || []), action.payload],
+        },
+      };
+
     // Journeys updates
     case 'UPDATE_JOURNEYS':
       return {
@@ -697,6 +735,174 @@ export function ProjectProvider({ children }) {
     [state.currentProject, state.clientProfile]
   );
 
+  /**
+   * Add a custom tag
+   */
+  const addTag = useCallback(
+    async (tagData) => {
+      if (!state.currentProject) {
+        return { data: null, error: 'No project selected' };
+      }
+
+      // Optimistic update
+      dispatch({ type: 'ADD_TAG', payload: tagData });
+
+      const updatedTags = {
+        ...state.tags,
+        custom: [...(state.tags.custom || []), tagData],
+      };
+
+      const { data, error, validationErrors } = await projectRepository.updateProject(
+        state.currentProject,
+        { tags: updatedTags }
+      );
+
+      if (error) {
+        // Rollback
+        dispatch({ type: 'DELETE_TAG', payload: tagData.id });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: { error: error.message, validationErrors },
+        });
+        return { data: null, error };
+      }
+
+      return { data: tagData, error: null };
+    },
+    [state.currentProject, state.tags]
+  );
+
+  /**
+   * Update an existing tag
+   */
+  const updateTag = useCallback(
+    async (tagData) => {
+      if (!state.currentProject) {
+        return { data: null, error: 'No project selected' };
+      }
+
+      // Store original for rollback
+      const original = (state.tags.custom || []).find((tag) => tag.id === tagData.id);
+
+      if (!original) {
+        return { data: null, error: 'Tag not found' };
+      }
+
+      // Optimistic update
+      dispatch({ type: 'UPDATE_TAG', payload: tagData });
+
+      const updatedTags = {
+        ...state.tags,
+        custom: (state.tags.custom || []).map((tag) =>
+          tag.id === tagData.id ? tagData : tag
+        ),
+      };
+
+      const { data, error, validationErrors } = await projectRepository.updateProject(
+        state.currentProject,
+        { tags: updatedTags }
+      );
+
+      if (error) {
+        // Rollback
+        dispatch({ type: 'UPDATE_TAG', payload: original });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: { error: error.message, validationErrors },
+        });
+        return { data: null, error };
+      }
+
+      return { data: tagData, error: null };
+    },
+    [state.currentProject, state.tags]
+  );
+
+  /**
+   * Delete a tag
+   */
+  const deleteTag = useCallback(
+    async (tagId) => {
+      if (!state.currentProject) {
+        return { data: null, error: 'No project selected' };
+      }
+
+      // Store original for rollback
+      const original = (state.tags.custom || []).find((tag) => tag.id === tagId);
+
+      if (!original) {
+        return { data: null, error: 'Tag not found' };
+      }
+
+      // Optimistic update
+      dispatch({ type: 'DELETE_TAG', payload: tagId });
+
+      const updatedTags = {
+        ...state.tags,
+        custom: (state.tags.custom || []).filter((tag) => tag.id !== tagId),
+      };
+
+      const { data, error } = await projectRepository.updateProject(
+        state.currentProject,
+        { tags: updatedTags }
+      );
+
+      if (error) {
+        // Rollback
+        dispatch({ type: 'ADD_TAG', payload: original });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: { error: error.message },
+        });
+        return { data: null, error };
+      }
+
+      return { data: { id: tagId }, error: null };
+    },
+    [state.currentProject, state.tags]
+  );
+
+  /**
+   * Add a tag from the pre-built library
+   */
+  const addTagFromLibrary = useCallback(
+    async (tagData) => {
+      if (!state.currentProject) {
+        return { data: null, error: 'No project selected' };
+      }
+
+      // Optimistic update
+      dispatch({ type: 'ADD_TAG_FROM_LIBRARY', payload: tagData });
+
+      const updatedTags = {
+        ...state.tags,
+        library: [...(state.tags.library || []), tagData],
+      };
+
+      const { data, error } = await projectRepository.updateProject(
+        state.currentProject,
+        { tags: updatedTags }
+      );
+
+      if (error) {
+        // Rollback (remove from library)
+        const rollbackTags = {
+          ...state.tags,
+          library: (state.tags.library || []).filter((tag) => tag.id !== tagData.id),
+        };
+        dispatch({ type: 'UPDATE_TAGS', payload: rollbackTags });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: { error: error.message },
+        });
+        return { data: null, error };
+      }
+
+      return { data: tagData, error: null };
+    },
+    [state.currentProject, state.tags]
+  );
+
   const value = {
     state,
     dispatch,
@@ -714,6 +920,11 @@ export function ProjectProvider({ children }) {
     addField,
     updateField,
     deleteField,
+    // Tag operations
+    addTag,
+    updateTag,
+    deleteTag,
+    addTagFromLibrary,
   };
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

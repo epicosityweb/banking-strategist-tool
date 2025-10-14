@@ -12,7 +12,7 @@
 | Epic 1: Foundation | ✅ Complete | 100% | Core app + Supabase integration |
 | Epic 2: Client Profile | ⏸️ Partial | 60% | Basic info complete, integration specs basic |
 | Epic 3: Data Model | ✅ Complete | 100% | Custom objects, fields, associations |
-| Epic 4: Tag Library | 🔜 Next | 0% | Qualification rules and designer |
+| Epic 4: Tag Library | 🏗️ In Progress | 45% | Phase 1-3 Complete - UI & Management ready |
 | Epic 5: Journey Simulator | 📋 Planned | 0% | Member scenarios and visualization |
 | Epic 6: Export & Docs | 📋 Planned | 0% | Implementation guide generation |
 
@@ -201,38 +201,140 @@ Components created:
 
 ---
 
-## Epic 4: Tag Library & Journey Designer (🔜 NEXT)
+## Epic 4: Tag Library & Journey Designer (🏗️ IN PROGRESS)
 
-**Status:** Not started - ready to begin
-**Estimated Duration:** 2-3 weeks
+**Status:** Phase 1-3 Complete - UI & Management Ready
+**Estimated Duration:** 4 weeks (157 hours)
+**GitHub Issue:** [#3](https://github.com/epicosityweb/banking-orchestration-framework-explainer/issues/3)
+**Branch:** `epic-4-tag-library`
 
-### Milestone 4.1: Tag System Architecture 📋
+### Milestone 4.1: Foundation & Data Model ✅
+**Completed:** October 14, 2025
+**Duration:** 2 days (18 hours)
+
+**Implemented:**
+- [x] Created [tagLibrary.json](src/data/tagLibrary.json) with 30 pre-built banking tags
+  - 8 origin tags (acquisition channel tracking)
+  - 10 behavior tags (engagement patterns)
+  - 12 opportunity tags (cross-sell readiness)
+- [x] Implemented [tagSchema.js](src/schemas/tagSchema.js) with comprehensive Zod validation
+  - Property, activity, association, and score rule schemas
+  - Tag validation with dependency checking
+  - Rule complexity analysis utilities
+  - Circular dependency detection
+- [x] Added tag CRUD operations to [ProjectContext-v2.jsx](src/context/ProjectContext-v2.jsx)
+  - `addTag`, `updateTag`, `deleteTag` functions
+  - `addTagFromLibrary` for pre-built tag imports
+  - Optimistic updates with error rollback
+- [x] Extended [ValidationService.js](src/services/ValidationService.js) with tag validation
+  - `validateTag` with context validation
+  - `validateTagLibrary` for library integrity
+  - `validateAllTags` for batch validation
+
+**Schema Features:**
+- 4 qualification rule types: property, activity, association, score
+- HubSpot event integration support
+- Nested filter builders for complex conditions
+- Hysteresis settings for score-based tags
+- Boolean logic (AND/OR) for rule combinations
+
+### Milestone 4.2: Tag Library Browser ✅
+**Completed:** October 14, 2025
+**Duration:** 3 days (22 hours)
+
+**Implemented:**
+- [x] Built [TagLibrary.jsx](src/features/tag-library/TagLibrary.jsx) main view with search and filtering
+  - Real-time search across name, description, category
+  - Category statistics dashboard
+  - Responsive grid layout
+  - Empty state handling
+- [x] Created [TagCard.jsx](src/features/tag-library/components/TagCard.jsx) component with preview functionality
+  - Category-specific color coding
+  - Tag metadata display
+  - Preview toggle for qualification rules
+  - Add/Added state management
+- [x] Implemented tag category filtering (origin, behavior, opportunity)
+  - Filter panel with category buttons
+  - Visual category indicators
+  - Real-time filtering
+- [x] Added "Add to Implementation" functionality
+  - One-click tag addition
+  - Visual feedback for added tags
+  - Disabled state for duplicates
+
+### Milestone 4.3: Tag Management ✅
+**Completed:** October 14, 2025
+**Duration:** 5 days (30 hours)
+
+**Implemented:**
+- [x] Created [TagModal.jsx](src/features/tag-library/components/TagModal.jsx) for create/edit operations
+  - Form validation with real-time feedback
+  - Category selection with visual indicators
+  - Icon and color picker
+  - Behavior type configuration
+  - Permanent tag flag
+- [x] Built tag properties form with comprehensive validation
+  - Name validation (2+ chars, proper format)
+  - Description validation (10+ chars minimum)
+  - Category-based color coding
+  - Behavior type explanations
+- [x] Implemented [DeleteTagModal.jsx](src/features/tag-library/components/DeleteTagModal.jsx) with dependency checking
+  - Scans for dependent tags
+  - Warns about journey impacts
+  - Permanent tag warnings
+  - Prevents accidental deletion
+- [x] Integrated modals into TagLibrary.jsx
+  - "Create Custom Tag" button functional
+  - Modal state management
+  - Success/error handling
+
+### Milestone 4.4: Property Rule Builder 📋
+**Duration:** 5 days (40 hours)
+**Status:** Not started
+
 **Tasks:**
-- [ ] Design tag data model
-- [ ] Create tag taxonomy (categories)
-- [ ] Implement tag storage in database
-- [ ] Build tag validation rules
+- [ ] Create RuleBuilder.jsx with rule type tabs
+- [ ] Build PropertyRuleForm.jsx (object → field → operator → value)
+- [ ] Implement OperatorSelector (filtered by field data type)
+- [ ] Add drag-and-drop rule ordering
 
-### Milestone 4.2: Library Management 📋
-**Tasks:**
-- [ ] Import standard banking tags
-- [ ] Create custom tag functionality
-- [ ] Tag search and filtering
-- [ ] Tag categorization UI
+### Milestone 4.5: Activity Rule Builder 📋
+**Duration:** 2 days (16 hours)
+**Status:** Not started
 
-### Milestone 4.3: Qualification Rules 📋
 **Tasks:**
-- [ ] Rule builder interface
-- [ ] Condition logic (AND/OR/NOT)
-- [ ] Field-based conditions
-- [ ] Data model validation
+- [ ] Create ActivityRuleForm.jsx with HubSpot event types
+- [ ] Implement occurrence conditions (has_occurred, count operators)
+- [ ] Add timeframe selector (last 7/30/60/90 days)
+- [ ] Build activity filter builder
 
-### Milestone 4.4: Journey Designer 📋
+### Milestone 4.6: Association Rule Builder 📋
+**Duration:** 2 days (16 hours)
+**Status:** Not started
+
 **Tasks:**
-- [ ] Visual journey builder
-- [ ] Stage sequencing
-- [ ] Tag assignment to stages
-- [ ] Journey validation
+- [ ] Create AssociationRuleForm.jsx
+- [ ] Implement nested filter builder (recursive property rules)
+- [ ] Add association condition types
+
+### Milestone 4.7: Score Rule Builder 📋
+**Duration:** 1 day (7 hours)
+**Status:** Not started
+
+**Tasks:**
+- [ ] Create ScoreRuleForm.jsx
+- [ ] Implement threshold configuration
+- [ ] Add hysteresis settings (add/remove thresholds)
+
+### Milestone 4.8: Rule Testing & Visualization 📋
+**Duration:** 3 days (30 hours)
+**Status:** Not started
+
+**Tasks:**
+- [ ] Create PlainEnglishRule.jsx (convert rules to readable sentences)
+- [ ] Build RuleLogicTree.jsx (visual tree diagram)
+- [ ] Implement sample member testing functionality
+- [ ] Add rule complexity analyzer
 
 ---
 
