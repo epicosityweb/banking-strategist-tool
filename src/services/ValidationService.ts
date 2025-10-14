@@ -12,6 +12,8 @@ import {
   validateTagDependencies,
   analyzeRuleComplexity,
 } from '../schemas/tagSchema';
+import { ValidationResult, ValidationError, TagValidationContext } from '../types/validation';
+import { z } from 'zod';
 
 /**
  * Validation Service
@@ -28,10 +30,8 @@ import {
 class ValidationService {
   /**
    * Validate a custom object
-   * @param {Object} objectData - Object data to validate
-   * @returns {{valid: boolean, data: Object|null, errors: Array}}
    */
-  validateCustomObject(objectData) {
+  validateCustomObject(objectData: any): ValidationResult {
     try {
       const validated = customObjectSchema.parse(objectData);
       return {
@@ -40,7 +40,7 @@ class ValidationService {
         errors: [],
       };
     } catch (error) {
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return {
           valid: false,
           data: null,
@@ -53,11 +53,8 @@ class ValidationService {
 
   /**
    * Validate a field
-   * @param {Object} fieldData - Field data to validate
-   * @param {Array} existingFields - Existing fields to check for duplicates
-   * @returns {{valid: boolean, data: Object|null, errors: Array}}
    */
-  validateField(fieldData, existingFields = []) {
+  validateField(fieldData: any, existingFields: any[] = []): ValidationResult {
     try {
       // First validate the field structure
       const validated = fieldSchema.parse(fieldData);
@@ -119,7 +116,7 @@ class ValidationService {
         errors: [],
       };
     } catch (error) {
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return {
           valid: false,
           data: null,
@@ -132,10 +129,8 @@ class ValidationService {
 
   /**
    * Validate an association
-   * @param {Object} associationData - Association data to validate
-   * @returns {{valid: boolean, data: Object|null, errors: Array}}
    */
-  validateAssociation(associationData) {
+  validateAssociation(associationData: any): ValidationResult {
     try {
       const validated = associationSchema.parse(associationData);
       return {
@@ -144,7 +139,7 @@ class ValidationService {
         errors: [],
       };
     } catch (error) {
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return {
           valid: false,
           data: null,
@@ -157,17 +152,15 @@ class ValidationService {
 
   /**
    * Validate a project's data model
-   * @param {Object} dataModel - Data model to validate
-   * @returns {{valid: boolean, data: Object|null, errors: Array}}
    */
-  validateDataModel(dataModel) {
-    const errors = [];
-    const validatedObjects = [];
-    const validatedAssociations = [];
+  validateDataModel(dataModel: any): ValidationResult {
+    const errors: any[] = [];
+    const validatedObjects: any[] = [];
+    const validatedAssociations: any[] = [];
 
     // Validate all objects
     if (dataModel.objects && Array.isArray(dataModel.objects)) {
-      dataModel.objects.forEach((object, index) => {
+      dataModel.objects.forEach((object: any, index: number) => {
         const result = this.validateCustomObject(object);
         if (!result.valid) {
           errors.push({
@@ -183,7 +176,7 @@ class ValidationService {
 
     // Validate all associations
     if (dataModel.associations && Array.isArray(dataModel.associations)) {
-      dataModel.associations.forEach((association, index) => {
+      dataModel.associations.forEach((association: any, index: number) => {
         const result = this.validateAssociation(association);
         if (!result.valid) {
           errors.push({
@@ -216,17 +209,15 @@ class ValidationService {
 
   /**
    * Validate referential integrity between objects and associations
-   * @param {Object} dataModel - Data model to check
-   * @returns {{valid: boolean, errors: Array}}
    */
-  validateReferentialIntegrity(dataModel) {
-    const errors = [];
+  validateReferentialIntegrity(dataModel: any): { valid: boolean; errors: any[] } {
+    const errors: any[] = [];
     const objectIds = new Set(
-      (dataModel.objects || []).map((obj) => obj.id)
+      (dataModel.objects || []).map((obj: any) => obj.id)
     );
 
     // Check if all associations reference valid objects
-    (dataModel.associations || []).forEach((assoc, index) => {
+    (dataModel.associations || []).forEach((assoc: any, index: number) => {
       if (!objectIds.has(assoc.fromObjectId)) {
         errors.push({
           path: `associations[${index}].fromObjectId`,
@@ -251,23 +242,20 @@ class ValidationService {
    * Format Zod validation errors into a user-friendly format
    * @private
    */
-  _formatZodErrors(zodError) {
-    if (!zodError.errors || !Array.isArray(zodError.errors)) {
-      return [{ field: 'unknown', message: zodError.message || 'Validation error', code: 'unknown' }];
+  _formatZodErrors(zodError: z.ZodError): ValidationError[] {
+    if (!zodError.issues || !Array.isArray(zodError.issues)) {
+      return [{ field: 'unknown', message: zodError.message || 'Validation error' }];
     }
-    return zodError.errors.map((err) => ({
+    return zodError.issues.map((err: any) => ({
       field: err.path.join('.'),
       message: err.message,
-      code: err.code,
     }));
   }
 
   /**
    * Convert Date objects to ISO strings for storage
-   * @param {Object} data - Data object to normalize
-   * @returns {Object} Normalized data
    */
-  normalizeDateFields(data) {
+  normalizeDateFields(data: any): any {
     const normalized = { ...data };
 
     if (normalized.createdAt instanceof Date) {
@@ -279,7 +267,7 @@ class ValidationService {
     }
 
     if (normalized.fields && Array.isArray(normalized.fields)) {
-      normalized.fields = normalized.fields.map((field) =>
+      normalized.fields = normalized.fields.map((field: any) =>
         this.normalizeDateFields(field)
       );
     }
@@ -289,12 +277,8 @@ class ValidationService {
 
   /**
    * Check if field name is unique within an object
-   * @param {string} fieldName - Field name to check
-   * @param {string} fieldId - Current field ID (for updates)
-   * @param {Array} existingFields - Existing fields
-   * @returns {boolean}
    */
-  isFieldNameUnique(fieldName, fieldId, existingFields = []) {
+  isFieldNameUnique(fieldName: string, fieldId: string, existingFields: any[] = []): boolean {
     const normalizedName = fieldName.toLowerCase();
     return !existingFields.some(
       (f) => f.id !== fieldId && f.name.toLowerCase() === normalizedName
@@ -303,12 +287,8 @@ class ValidationService {
 
   /**
    * Check if object name is unique within a project
-   * @param {string} objectName - Object name to check
-   * @param {string} objectId - Current object ID (for updates)
-   * @param {Array} existingObjects - Existing objects
-   * @returns {boolean}
    */
-  isObjectNameUnique(objectName, objectId, existingObjects = []) {
+  isObjectNameUnique(objectName: string, objectId: string, existingObjects: any[] = []): boolean {
     const normalizedName = objectName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
     return !existingObjects.some(
       (obj) => obj.id !== objectId && obj.name.toLowerCase() === normalizedName
@@ -319,11 +299,8 @@ class ValidationService {
 
   /**
    * Validate a tag
-   * @param {Object} tagData - Tag data to validate
-   * @param {Object} context - Validation context (existingTags, availableObjects)
-   * @returns {{valid: boolean, data: Object|null, errors: Array}}
    */
-  validateTag(tagData, context = {}) {
+  validateTag(tagData: any, context: TagValidationContext = {}): ValidationResult {
     try {
       // First validate the tag structure
       const validated = tagSchema.parse(tagData);
@@ -384,7 +361,7 @@ class ValidationService {
         errors: [],
       };
     } catch (error) {
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return {
           valid: false,
           data: null,
@@ -397,10 +374,8 @@ class ValidationService {
 
   /**
    * Validate a tag library
-   * @param {Object} libraryData - Tag library data to validate
-   * @returns {{valid: boolean, data: Object|null, errors: Array}}
    */
-  validateTagLibrary(libraryData) {
+  validateTagLibrary(libraryData: any): ValidationResult {
     try {
       const validated = tagLibrarySchema.parse(libraryData);
       return {
@@ -409,7 +384,7 @@ class ValidationService {
         errors: [],
       };
     } catch (error) {
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return {
           valid: false,
           data: null,
@@ -422,15 +397,12 @@ class ValidationService {
 
   /**
    * Validate all tags in a project
-   * @param {Array} tags - Tags to validate
-   * @param {Array} availableObjects - Available custom objects for validation
-   * @returns {{valid: boolean, data: Array|null, errors: Array}}
    */
-  validateAllTags(tags, availableObjects = []) {
-    const errors = [];
-    const validatedTags = [];
+  validateAllTags(tags: any[], availableObjects: any[] = []): ValidationResult {
+    const errors: any[] = [];
+    const validatedTags: any[] = [];
 
-    tags.forEach((tag, index) => {
+    tags.forEach((tag: any, index: number) => {
       const result = this.validateTag(tag, {
         existingTags: tags,
         availableObjects,
@@ -464,21 +436,15 @@ class ValidationService {
 
   /**
    * Analyze tag qualification rule complexity
-   * @param {Object} qualificationRules - Rules to analyze
-   * @returns {Object} Complexity analysis
    */
-  analyzeTagComplexity(qualificationRules) {
+  analyzeTagComplexity(qualificationRules: any): any {
     return analyzeRuleComplexity(qualificationRules);
   }
 
   /**
    * Check if tag name is unique within a project
-   * @param {string} tagName - Tag name to check
-   * @param {string} tagId - Current tag ID (for updates)
-   * @param {Array} existingTags - Existing tags
-   * @returns {boolean}
    */
-  isTagNameUnique(tagName, tagId, existingTags = []) {
+  isTagNameUnique(tagName: string, tagId: string, existingTags: any[] = []): boolean {
     const normalizedName = tagName.toLowerCase();
     return !existingTags.some(
       (tag) => tag.id !== tagId && tag.name.toLowerCase() === normalizedName
@@ -487,10 +453,8 @@ class ValidationService {
 
   /**
    * Validate tag color format
-   * @param {string} color - Hex color code to validate
-   * @returns {{valid: boolean, errors: Array}}
    */
-  validateColor(color) {
+  validateColor(color: string): { valid: boolean; errors: ValidationError[] } {
     const errors = validateTagColor(color);
     return {
       valid: errors.length === 0,

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Tag, CustomObject, CustomField, QualificationRules } from '../types/tag';
 
 /**
  * Validation schemas for Tag Library entities using Zod
@@ -184,13 +185,13 @@ export const editTagFormSchema = createTagFormSchema.extend({
 
 /**
  * Validate tag name uniqueness
- * @param {string} name - Tag name to validate
- * @param {Array} existingTags - Existing tags to check against
- * @param {string} currentTagId - ID of tag being edited (optional)
- * @returns {Array<string>} Array of error messages
  */
-export const validateTagName = (name, existingTags = [], currentTagId = null) => {
-  const errors = [];
+export const validateTagName = (
+  name: string,
+  existingTags: Tag[] = [],
+  currentTagId: string | null = null
+): string[] => {
+  const errors: string[] = [];
 
   if (!name || name.trim().length < 2) {
     errors.push('Tag name must be at least 2 characters');
@@ -215,11 +216,9 @@ export const validateTagName = (name, existingTags = [], currentTagId = null) =>
 
 /**
  * Validate tag color format
- * @param {string} color - Hex color code to validate
- * @returns {Array<string>} Array of error messages
  */
-export const validateTagColor = (color) => {
-  const errors = [];
+export const validateTagColor = (color: string): string[] => {
+  const errors: string[] = [];
 
   if (!color) {
     errors.push('Color is required');
@@ -235,12 +234,12 @@ export const validateTagColor = (color) => {
 
 /**
  * Validate qualification rules completeness
- * @param {Object} rules - Qualification rules to validate
- * @param {Array} availableObjects - Available custom objects
- * @returns {Array<string>} Array of error messages
  */
-export const validateQualificationRules = (rules, availableObjects = []) => {
-  const errors = [];
+export const validateQualificationRules = (
+  rules: QualificationRules,
+  availableObjects: CustomObject[] = []
+): string[] => {
+  const errors: string[] = [];
 
   if (!rules || !rules.conditions || rules.conditions.length === 0) {
     errors.push('At least one qualification rule condition is required');
@@ -250,29 +249,32 @@ export const validateQualificationRules = (rules, availableObjects = []) => {
   // Validate property rules reference existing objects/fields
   if (rules.ruleType === 'property') {
     rules.conditions.forEach((condition, index) => {
-      const objectExists = availableObjects.some(
-        (obj) => obj.name === condition.object || obj.label === condition.object
-      );
-
-      if (!objectExists) {
-        errors.push(
-          `Condition ${index + 1}: Object "${condition.object}" does not exist in data model`
-        );
-      }
-
-      // Check if field exists in the object
-      if (objectExists) {
-        const object = availableObjects.find(
-          (obj) => obj.name === condition.object || obj.label === condition.object
-        );
-        const fieldExists = object?.fields?.some(
-          (field) => field.name === condition.field || field.label === condition.field
+      // Type guard to ensure this is a property rule condition
+      if ('object' in condition && 'field' in condition) {
+        const objectExists = availableObjects.some(
+          (obj) => obj.name === condition.object
         );
 
-        if (!fieldExists) {
+        if (!objectExists) {
           errors.push(
-            `Condition ${index + 1}: Field "${condition.field}" does not exist in object "${condition.object}"`
+            `Condition ${index + 1}: Object "${condition.object}" does not exist in data model`
           );
+        }
+
+        // Check if field exists in the object
+        if (objectExists) {
+          const object = availableObjects.find(
+            (obj) => obj.name === condition.object
+          );
+          const fieldExists = object?.fields?.some(
+            (field: CustomField) => field.name === condition.field
+          );
+
+          if (!fieldExists) {
+            errors.push(
+              `Condition ${index + 1}: Field "${condition.field}" does not exist in object "${condition.object}"`
+            );
+          }
         }
       }
     });
@@ -283,20 +285,20 @@ export const validateQualificationRules = (rules, availableObjects = []) => {
 
 /**
  * Validate tag dependencies (circular dependency check)
- * @param {string} tagId - Tag ID being validated
- * @param {Array<string>} dependencies - Array of dependency tag IDs
- * @param {Array} allTags - All available tags
- * @returns {Array<string>} Array of error messages
  */
-export const validateTagDependencies = (tagId, dependencies = [], allTags = []) => {
-  const errors = [];
+export const validateTagDependencies = (
+  _tagId: string,
+  dependencies: string[] = [],
+  allTags: Tag[] = []
+): string[] => {
+  const errors: string[] = [];
 
   if (!dependencies || dependencies.length === 0) {
     return errors;
   }
 
   // Check for circular dependencies (recursive check)
-  const checkCircular = (currentTagId, visited = new Set()) => {
+  const checkCircular = (currentTagId: string, visited: Set<string> = new Set()): boolean => {
     if (visited.has(currentTagId)) {
       return true; // Circular dependency found
     }
@@ -326,36 +328,42 @@ export const validateTagDependencies = (tagId, dependencies = [], allTags = []) 
 
 /**
  * Calculate rule complexity score
- * @param {Object} rules - Qualification rules
- * @returns {Object} Complexity analysis
  */
-export const analyzeRuleComplexity = (rules) => {
+export type ComplexityLevel = 'none' | 'simple' | 'moderate' | 'complex';
+
+export interface ComplexityAnalysis {
+  score: number;
+  level: ComplexityLevel;
+  warnings: string[];
+}
+
+export const analyzeRuleComplexity = (rules: QualificationRules): ComplexityAnalysis => {
   if (!rules || !rules.conditions) {
     return { score: 0, level: 'none', warnings: [] };
   }
 
   let score = 0;
-  const warnings = [];
+  const warnings: string[] = [];
 
   // Base score per condition
   score += rules.conditions.length;
 
   // Additional complexity for nested filters
   rules.conditions.forEach((condition) => {
-    if (condition.nestedFilters && condition.nestedFilters.length > 0) {
+    if ('nestedFilters' in condition && condition.nestedFilters && condition.nestedFilters.length > 0) {
       score += condition.nestedFilters.length * 2; // Nested filters are more complex
       if (condition.nestedFilters.length > 5) {
         warnings.push('Very deep nesting may impact performance');
       }
     }
 
-    if (condition.filters && condition.filters.length > 0) {
+    if ('filters' in condition && condition.filters && condition.filters.length > 0) {
       score += condition.filters.length;
     }
   });
 
   // Determine complexity level
-  let level = 'simple';
+  let level: ComplexityLevel = 'simple';
   if (score > 10) {
     level = 'complex';
     warnings.push('Consider breaking this into multiple tags');

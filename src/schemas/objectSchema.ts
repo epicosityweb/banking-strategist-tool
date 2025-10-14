@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 
 // Helper function to generate API name from object name
-export const generateApiName = (name, projectId = 'client') => {
+export const generateApiName = (name: string, projectId: string = 'client'): string => {
   return `p_${projectId}_${name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
@@ -105,8 +105,8 @@ export const editObjectFormSchema = createObjectFormSchema.extend({
 });
 
 // Validation helpers
-export const validateObjectName = (name, existingObjects = []) => {
-  const errors = [];
+export const validateObjectName = (name: string, existingObjects: any[] = []): string[] => {
+  const errors: string[] = [];
 
   if (!name || name.trim().length < 2) {
     errors.push('Object name must be at least 2 characters');
@@ -118,7 +118,7 @@ export const validateObjectName = (name, existingObjects = []) => {
 
   const normalizedName = name?.toLowerCase().replace(/[^a-z0-9_]/g, '_');
   const duplicate = existingObjects.find(
-    obj => obj.name.toLowerCase() === normalizedName
+    (obj: any) => obj.name.toLowerCase() === normalizedName
   );
 
   if (duplicate) {
@@ -128,8 +128,8 @@ export const validateObjectName = (name, existingObjects = []) => {
   return errors;
 };
 
-export const validateApiName = (apiName) => {
-  const errors = [];
+export const validateApiName = (apiName: string): string[] => {
+  const errors: string[] = [];
 
   if (!apiName) {
     errors.push('API name is required');
