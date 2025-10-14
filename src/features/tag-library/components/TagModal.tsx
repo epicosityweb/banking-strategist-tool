@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useProject } from '../../../context/ProjectContext-v2';
 import { v4 as uuidv4 } from 'uuid';
+import { Tag, TagCategory, TagBehavior } from '../../../types/tag';
 
 /**
  * TagModal Component
@@ -9,9 +10,34 @@ import { v4 as uuidv4 } from 'uuid';
  * Modal for creating and editing custom tags.
  * Includes form validation and color picker.
  */
-export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' }) {
+
+interface TagModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tag?: Tag | null;
+  mode?: 'create' | 'edit';
+}
+
+interface TagFormData {
+  name: string;
+  category: TagCategory;
+  description: string;
+  icon: string;
+  color: string;
+  behavior: TagBehavior;
+  isPermanent: boolean;
+}
+
+interface FormErrors {
+  name?: string;
+  description?: string;
+  icon?: string;
+  submit?: string;
+}
+
+export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' }: TagModalProps) {
   const { addTag, updateTag } = useProject();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TagFormData>({
     name: '',
     category: 'behavior',
     description: '',
@@ -20,8 +46,8 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
     behavior: 'dynamic',
     isPermanent: false,
   });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Initialize form data when editing
   useEffect(() => {
@@ -44,19 +70,20 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
     opportunity: '#7C3AED',
   };
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>): void => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
     // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleCategoryChange = (category) => {
+  const handleCategoryChange = (category: TagCategory): void => {
     setFormData((prev) => ({
       ...prev,
       category,
@@ -64,8 +91,8 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
     }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
       newErrors.name = 'Tag name is required';
@@ -89,7 +116,7 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -99,17 +126,17 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
     setIsSubmitting(true);
 
     try {
-      const tagData = {
-        id: mode === 'edit' ? tag.id : uuidv4(),
+      const tagData: Tag = {
+        id: mode === 'edit' && tag ? tag.id : uuidv4(),
         ...formData,
         isCustom: true,
-        qualificationRules: mode === 'edit' ? tag.qualificationRules : {
+        qualificationRules: mode === 'edit' && tag ? tag.qualificationRules : {
           ruleType: 'property',
           logic: 'AND',
           conditions: [],
         },
-        dependencies: mode === 'edit' ? tag.dependencies : [],
-        createdAt: mode === 'edit' ? tag.createdAt : new Date(),
+        dependencies: mode === 'edit' && tag ? tag.dependencies : [],
+        createdAt: mode === 'edit' && tag ? tag.createdAt : new Date(),
         updatedAt: new Date(),
       };
 
@@ -118,12 +145,14 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
         : await addTag(tagData);
 
       if (result.error) {
-        setErrors({ submit: result.error.message || 'Failed to save tag' });
+        const errorMessage = typeof result.error === 'string' ? result.error : 'Failed to save tag';
+        setErrors({ submit: errorMessage });
       } else {
         onClose();
       }
     } catch (error) {
-      setErrors({ submit: error.message || 'An unexpected error occurred' });
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +202,7 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form id="tag-form" onSubmit={handleSubmit} className="space-y-6">
               {/* Tag Name */}
               <div>
                 <label
@@ -398,8 +427,8 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
           {/* Footer */}
           <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
+              form="tag-form"
               disabled={isSubmitting}
               className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext-v2';
 import { Plus, Search, Filter } from 'lucide-react';
 import TagCard from './components/TagCard';
 import TagModal from './components/TagModal';
+import { Tag } from '../../types/tag';
 import tagLibraryData from '../../data/tagLibrary.json';
 
 /**
@@ -18,15 +19,25 @@ import tagLibraryData from '../../data/tagLibrary.json';
  * - Create custom tags
  * - View tag qualification rules
  */
+
+type CategoryType = 'all' | 'origin' | 'behavior' | 'opportunity';
+
+type CategoryStats = {
+  all: number;
+  origin: number;
+  behavior: number;
+  opportunity: number;
+};
+
 export default function TagLibrary() {
   const { state, addTagFromLibrary } = useProject();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
-  const [showTagModal, setShowTagModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType>('all');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [showTagModal, setShowTagModal] = useState<boolean>(false);
 
   // Get all available tags (pre-built library)
-  const availableTags = tagLibraryData.tags;
+  const availableTags = tagLibraryData.tags as Tag[];
 
   // Get tags already added to this implementation
   const implementationTags = state.tags?.library || [];
@@ -59,8 +70,8 @@ export default function TagLibrary() {
   }, [availableTags, searchTerm, selectedCategory]);
 
   // Category statistics
-  const categoryStats = useMemo(() => {
-    const stats = {
+  const categoryStats = useMemo<CategoryStats>(() => {
+    const stats: CategoryStats = {
       all: availableTags.length,
       origin: 0,
       behavior: 0,
@@ -68,13 +79,14 @@ export default function TagLibrary() {
     };
 
     availableTags.forEach((tag) => {
-      stats[tag.category]++;
+      const category = tag.category as 'origin' | 'behavior' | 'opportunity';
+      stats[category]++;
     });
 
     return stats;
   }, [availableTags]);
 
-  const handleAddTag = async (tag) => {
+  const handleAddTag = async (tag: Tag): Promise<void> => {
     const { error } = await addTagFromLibrary(tag);
     if (error) {
       console.error('Failed to add tag:', error);

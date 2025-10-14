@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, Dispatch } from 'react';
+// @ts-ignore - ProjectRepository is still .js, will be migrated later
 import projectRepository from '../services/ProjectRepository';
+import { ProjectState, ProjectAction, Tag, CustomObject, CustomField, Project } from '../types/project';
 
 /**
  * Project Context V2
@@ -15,9 +17,39 @@ import projectRepository from '../services/ProjectRepository';
  * - Optimistic updates for better UX
  */
 
-const ProjectContext = createContext();
+// Repository response type
+interface RepositoryResponse<T> {
+  data: T | null;
+  error: Error | string | null;
+  validationErrors?: Array<{ field: string; message: string }>;
+}
 
-const initialState = {
+// Context value type
+interface ProjectContextValue {
+  state: ProjectState;
+  dispatch: Dispatch<ProjectAction>;
+  saveProject: () => Promise<RepositoryResponse<Project>>;
+  createProject: (projectData: Partial<Project>) => Promise<RepositoryResponse<Project>>;
+  loadProject: (projectId: string) => Promise<RepositoryResponse<Project>>;
+  deleteProject: (projectId: string) => Promise<RepositoryResponse<boolean>>;
+  updateClientProfile: (updates: { basicInfo?: Record<string, unknown> }) => Promise<RepositoryResponse<Project>>;
+  updateIntegrationSpecs: (specs: Record<string, unknown>) => Promise<RepositoryResponse<Project>>;
+  addCustomObject: (objectData: CustomObject) => Promise<RepositoryResponse<CustomObject>>;
+  updateCustomObject: (objectId: string, updates: Partial<CustomObject>) => Promise<RepositoryResponse<CustomObject>>;
+  deleteCustomObject: (objectId: string) => Promise<RepositoryResponse<boolean>>;
+  duplicateCustomObject: (objectId: string) => Promise<RepositoryResponse<CustomObject>>;
+  addField: (objectId: string, fieldData: CustomField) => Promise<RepositoryResponse<CustomField>>;
+  updateField: (objectId: string, fieldId: string, updates: Partial<CustomField>) => Promise<RepositoryResponse<CustomField>>;
+  deleteField: (objectId: string, fieldId: string) => Promise<RepositoryResponse<boolean>>;
+  addTag: (tagData: Tag) => Promise<RepositoryResponse<Tag>>;
+  updateTag: (tagData: Tag) => Promise<RepositoryResponse<Tag>>;
+  deleteTag: (tagId: string) => Promise<RepositoryResponse<{ id: string }>>;
+  addTagFromLibrary: (tagData: Tag) => Promise<RepositoryResponse<Tag>>;
+}
+
+const ProjectContext = createContext<ProjectContextValue | undefined>(undefined);
+
+const initialState: ProjectState = {
   currentProject: null,
   projects: [],
   clientProfile: {
@@ -41,7 +73,7 @@ const initialState = {
   validationErrors: [],
 };
 
-function projectReducer(state, action) {
+function projectReducer(state: ProjectState, action: ProjectAction): ProjectState {
   switch (action.type) {
     // Loading states
     case 'SET_LOADING':
@@ -262,7 +294,7 @@ function projectReducer(state, action) {
   }
 }
 
-export function ProjectProvider({ children }) {
+export function ProjectProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(projectReducer, initialState);
 
   // Load projects from storage on mount
@@ -275,31 +307,20 @@ export function ProjectProvider({ children }) {
       if (error) {
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: typeof error === 'string' ? error : error.message },
         });
       } else {
-        dispatch({ type: 'LOAD_PROJECTS', payload: data });
+        dispatch({ type: 'LOAD_PROJECTS', payload: data || [] });
       }
     };
 
     loadProjects();
   }, []);
 
-  // Auto-save current project every 30 seconds
-  useEffect(() => {
-    if (!state.currentProject) return;
-
-    const interval = setInterval(() => {
-      saveProject();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [state.currentProject, state.clientProfile, state.dataModel, state.tags, state.journeys]);
-
   /**
    * Save current project to storage
    */
-  const saveProject = useCallback(async () => {
+  const saveProject = useCallback(async (): Promise<RepositoryResponse<Project>> => {
     if (!state.currentProject) return { data: null, error: 'No project selected' };
 
     const updates = {
@@ -315,11 +336,12 @@ export function ProjectProvider({ children }) {
     );
 
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error.message;
       dispatch({
         type: 'SET_ERROR',
-        payload: { error: error.message, validationErrors },
+        payload: { error: errorMessage, validationErrors },
       });
-      return { data: null, error };
+      return { data: null, error: errorMessage };
     }
 
     dispatch({ type: 'UPDATE_SAVED_AT', payload: new Date().toISOString() });
@@ -328,10 +350,21 @@ export function ProjectProvider({ children }) {
     return { data, error: null };
   }, [state.currentProject, state.clientProfile, state.dataModel, state.tags, state.journeys]);
 
+  // Auto-save current project every 30 seconds
+  useEffect(() => {
+    if (!state.currentProject) return;
+
+    const interval = setInterval(() => {
+      saveProject();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [state.currentProject, saveProject]);
+
   /**
    * Create a new project
    */
-  const createProject = useCallback(async (projectData) => {
+  const createProject = useCallback(async (projectData: Partial<Project>): Promise<RepositoryResponse<Project>> => {
     dispatch({ type: 'SET_LOADING', payload: true });
 
     const { data, error, validationErrors } = await projectRepository.createProject(
@@ -339,11 +372,12 @@ export function ProjectProvider({ children }) {
     );
 
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error.message;
       dispatch({
         type: 'SET_ERROR',
-        payload: { error: error.message, validationErrors },
+        payload: { error: errorMessage, validationErrors },
       });
-      return { data: null, error };
+      return { data: null, error: errorMessage };
     }
 
     dispatch({ type: 'CREATE_PROJECT', payload: data });
@@ -353,17 +387,18 @@ export function ProjectProvider({ children }) {
   /**
    * Load a project
    */
-  const loadProject = useCallback(async (projectId) => {
+  const loadProject = useCallback(async (projectId: string): Promise<RepositoryResponse<Project>> => {
     dispatch({ type: 'SET_LOADING', payload: true });
 
     const { data, error } = await projectRepository.getProject(projectId);
 
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error.message;
       dispatch({
         type: 'SET_ERROR',
-        payload: { error: error.message },
+        payload: { error: errorMessage },
       });
-      return { data: null, error };
+      return { data: null, error: errorMessage };
     }
 
     dispatch({ type: 'LOAD_PROJECT', payload: data });
@@ -373,28 +408,29 @@ export function ProjectProvider({ children }) {
   /**
    * Delete a project
    */
-  const deleteProject = useCallback(async (projectId) => {
+  const deleteProject = useCallback(async (projectId: string): Promise<RepositoryResponse<boolean>> => {
     dispatch({ type: 'SET_LOADING', payload: true });
 
-    const { data, error } = await projectRepository.deleteProject(projectId);
+    const { error } = await projectRepository.deleteProject(projectId);
 
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error.message;
       dispatch({
         type: 'SET_ERROR',
-        payload: { error: error.message },
+        payload: { error: errorMessage },
       });
-      return { data: null, error };
+      return { data: null, error: errorMessage };
     }
 
     dispatch({ type: 'DELETE_PROJECT', payload: projectId });
-    return { data, error: null };
+    return { data: true, error: null };
   }, []);
 
   /**
    * Add a custom object
    */
   const addCustomObject = useCallback(
-    async (objectData) => {
+    async (objectData: CustomObject): Promise<RepositoryResponse<CustomObject>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -408,11 +444,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback optimistic update
         dispatch({ type: 'DELETE_OBJECT', payload: objectData.id });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message, validationErrors },
+          payload: { error: errorMessage, validationErrors },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       // Update with server data
@@ -426,7 +463,7 @@ export function ProjectProvider({ children }) {
    * Update a custom object
    */
   const updateCustomObject = useCallback(
-    async (objectId, updates) => {
+    async (objectId: string, updates: Partial<CustomObject>): Promise<RepositoryResponse<CustomObject>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -435,7 +472,7 @@ export function ProjectProvider({ children }) {
       const original = state.dataModel.objects?.find((o) => o.id === objectId);
 
       // Optimistic update
-      dispatch({ type: 'UPDATE_OBJECT', payload: { id: objectId, ...updates } });
+      dispatch({ type: 'UPDATE_OBJECT', payload: { id: objectId, ...updates } as CustomObject });
 
       const { data, error, validationErrors } =
         await projectRepository.updateCustomObject(
@@ -449,11 +486,12 @@ export function ProjectProvider({ children }) {
         if (original) {
           dispatch({ type: 'UPDATE_OBJECT', payload: original });
         }
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message, validationErrors },
+          payload: { error: errorMessage, validationErrors },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       // Update with server data
@@ -467,7 +505,7 @@ export function ProjectProvider({ children }) {
    * Delete a custom object
    */
   const deleteCustomObject = useCallback(
-    async (objectId) => {
+    async (objectId: string): Promise<RepositoryResponse<boolean>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -478,7 +516,7 @@ export function ProjectProvider({ children }) {
       // Optimistic update
       dispatch({ type: 'DELETE_OBJECT', payload: objectId });
 
-      const { data, error } = await projectRepository.deleteCustomObject(
+      const { error } = await projectRepository.deleteCustomObject(
         state.currentProject,
         objectId
       );
@@ -488,14 +526,15 @@ export function ProjectProvider({ children }) {
         if (original) {
           dispatch({ type: 'ADD_OBJECT', payload: original });
         }
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
-      return { data, error: null };
+      return { data: true, error: null };
     },
     [state.currentProject, state.dataModel.objects]
   );
@@ -504,7 +543,7 @@ export function ProjectProvider({ children }) {
    * Duplicate a custom object
    */
   const duplicateCustomObject = useCallback(
-    async (objectId) => {
+    async (objectId: string): Promise<RepositoryResponse<CustomObject>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -515,11 +554,12 @@ export function ProjectProvider({ children }) {
       );
 
       if (error) {
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       dispatch({ type: 'ADD_OBJECT', payload: data });
@@ -532,7 +572,7 @@ export function ProjectProvider({ children }) {
    * Add a field to an object
    */
   const addField = useCallback(
-    async (objectId, fieldData) => {
+    async (objectId: string, fieldData: CustomField): Promise<RepositoryResponse<CustomField>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -549,11 +589,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback optimistic update
         dispatch({ type: 'DELETE_FIELD', payload: { objectId, fieldId: fieldData.id } });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message, validationErrors },
+          payload: { error: errorMessage, validationErrors },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       // Update with server data
@@ -567,7 +608,7 @@ export function ProjectProvider({ children }) {
    * Update a field
    */
   const updateField = useCallback(
-    async (objectId, fieldId, updates) => {
+    async (objectId: string, fieldId: string, updates: Partial<CustomField>): Promise<RepositoryResponse<CustomField>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -579,7 +620,7 @@ export function ProjectProvider({ children }) {
       // Optimistic update
       dispatch({
         type: 'UPDATE_FIELD',
-        payload: { objectId, field: { id: fieldId, ...updates } },
+        payload: { objectId, field: { id: fieldId, ...updates } as CustomField },
       });
 
       const { data, error, validationErrors } = await projectRepository.updateField(
@@ -594,11 +635,12 @@ export function ProjectProvider({ children }) {
         if (original) {
           dispatch({ type: 'UPDATE_FIELD', payload: { objectId, field: original } });
         }
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message, validationErrors },
+          payload: { error: errorMessage, validationErrors },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       // Update with server data
@@ -612,7 +654,7 @@ export function ProjectProvider({ children }) {
    * Delete a field
    */
   const deleteField = useCallback(
-    async (objectId, fieldId) => {
+    async (objectId: string, fieldId: string): Promise<RepositoryResponse<boolean>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -624,7 +666,7 @@ export function ProjectProvider({ children }) {
       // Optimistic update
       dispatch({ type: 'DELETE_FIELD', payload: { objectId, fieldId } });
 
-      const { data, error } = await projectRepository.deleteField(
+      const { error } = await projectRepository.deleteField(
         state.currentProject,
         objectId,
         fieldId
@@ -635,14 +677,15 @@ export function ProjectProvider({ children }) {
         if (original) {
           dispatch({ type: 'ADD_FIELD', payload: { objectId, field: original } });
         }
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
-      return { data, error: null };
+      return { data: true, error: null };
     },
     [state.currentProject, state.dataModel.objects]
   );
@@ -651,7 +694,7 @@ export function ProjectProvider({ children }) {
    * Update client profile (basic information)
    */
   const updateClientProfile = useCallback(
-    async (updates) => {
+    async (updates: { basicInfo?: Record<string, unknown> }): Promise<RepositoryResponse<Project>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -679,11 +722,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback
         dispatch({ type: 'UPDATE_CLIENT_PROFILE', payload: original });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       return { data, error: null };
@@ -695,7 +739,7 @@ export function ProjectProvider({ children }) {
    * Update integration specifications
    */
   const updateIntegrationSpecs = useCallback(
-    async (specs) => {
+    async (specs: Record<string, unknown>): Promise<RepositoryResponse<Project>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -723,11 +767,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback
         dispatch({ type: 'UPDATE_CLIENT_PROFILE', payload: original });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       return { data, error: null };
@@ -739,7 +784,7 @@ export function ProjectProvider({ children }) {
    * Add a custom tag
    */
   const addTag = useCallback(
-    async (tagData) => {
+    async (tagData: Tag): Promise<RepositoryResponse<Tag>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -752,7 +797,7 @@ export function ProjectProvider({ children }) {
         custom: [...(state.tags.custom || []), tagData],
       };
 
-      const { data, error, validationErrors } = await projectRepository.updateProject(
+      const { error, validationErrors } = await projectRepository.updateProject(
         state.currentProject,
         { tags: updatedTags }
       );
@@ -760,11 +805,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback
         dispatch({ type: 'DELETE_TAG', payload: tagData.id });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message, validationErrors },
+          payload: { error: errorMessage, validationErrors },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       return { data: tagData, error: null };
@@ -776,7 +822,7 @@ export function ProjectProvider({ children }) {
    * Update an existing tag
    */
   const updateTag = useCallback(
-    async (tagData) => {
+    async (tagData: Tag): Promise<RepositoryResponse<Tag>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -798,7 +844,7 @@ export function ProjectProvider({ children }) {
         ),
       };
 
-      const { data, error, validationErrors } = await projectRepository.updateProject(
+      const { error, validationErrors } = await projectRepository.updateProject(
         state.currentProject,
         { tags: updatedTags }
       );
@@ -806,11 +852,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback
         dispatch({ type: 'UPDATE_TAG', payload: original });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message, validationErrors },
+          payload: { error: errorMessage, validationErrors },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       return { data: tagData, error: null };
@@ -822,7 +869,7 @@ export function ProjectProvider({ children }) {
    * Delete a tag
    */
   const deleteTag = useCallback(
-    async (tagId) => {
+    async (tagId: string): Promise<RepositoryResponse<{ id: string }>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -842,7 +889,7 @@ export function ProjectProvider({ children }) {
         custom: (state.tags.custom || []).filter((tag) => tag.id !== tagId),
       };
 
-      const { data, error } = await projectRepository.updateProject(
+      const { error } = await projectRepository.updateProject(
         state.currentProject,
         { tags: updatedTags }
       );
@@ -850,11 +897,12 @@ export function ProjectProvider({ children }) {
       if (error) {
         // Rollback
         dispatch({ type: 'ADD_TAG', payload: original });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       return { data: { id: tagId }, error: null };
@@ -866,7 +914,7 @@ export function ProjectProvider({ children }) {
    * Add a tag from the pre-built library
    */
   const addTagFromLibrary = useCallback(
-    async (tagData) => {
+    async (tagData: Tag): Promise<RepositoryResponse<Tag>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
       }
@@ -879,7 +927,7 @@ export function ProjectProvider({ children }) {
         library: [...(state.tags.library || []), tagData],
       };
 
-      const { data, error } = await projectRepository.updateProject(
+      const { error } = await projectRepository.updateProject(
         state.currentProject,
         { tags: updatedTags }
       );
@@ -891,11 +939,12 @@ export function ProjectProvider({ children }) {
           library: (state.tags.library || []).filter((tag) => tag.id !== tagData.id),
         };
         dispatch({ type: 'UPDATE_TAGS', payload: rollbackTags });
+        const errorMessage = typeof error === 'string' ? error : error.message;
         dispatch({
           type: 'SET_ERROR',
-          payload: { error: error.message },
+          payload: { error: errorMessage },
         });
-        return { data: null, error };
+        return { data: null, error: errorMessage };
       }
 
       return { data: tagData, error: null };
@@ -903,7 +952,7 @@ export function ProjectProvider({ children }) {
     [state.currentProject, state.tags]
   );
 
-  const value = {
+  const value: ProjectContextValue = {
     state,
     dispatch,
     // Async actions
@@ -930,7 +979,7 @@ export function ProjectProvider({ children }) {
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 }
 
-export function useProject() {
+export function useProject(): ProjectContextValue {
   const context = useContext(ProjectContext);
   if (!context) {
     throw new Error('useProject must be used within ProjectProvider');

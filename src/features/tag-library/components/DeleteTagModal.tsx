@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { useProject } from '../../../context/ProjectContext-v2';
+import { Tag } from '../../../types/tag';
 
 /**
  * DeleteTagModal Component
@@ -8,13 +9,26 @@ import { useProject } from '../../../context/ProjectContext-v2';
  * Modal for deleting tags with dependency checking.
  * Warns users if deleting a tag will affect other tags or journeys.
  */
-export default function DeleteTagModal({ isOpen, onClose, tag }) {
+
+interface DeleteTagModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tag: Tag | null;
+}
+
+interface TagDependencies {
+  tags: Tag[];
+  journeys: never[];
+  hasBlockers: boolean;
+}
+
+export default function DeleteTagModal({ isOpen, onClose, tag }: DeleteTagModalProps) {
   const { state, deleteTag } = useProject();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Check for dependencies
-  const dependencies = useMemo(() => {
+  const dependencies = useMemo<TagDependencies>(() => {
     if (!tag) return { tags: [], journeys: [], hasBlockers: false };
 
     const allTags = [...(state.tags?.library || []), ...(state.tags?.custom || [])];
@@ -25,7 +39,7 @@ export default function DeleteTagModal({ isOpen, onClose, tag }) {
     );
 
     // TODO: Check journeys that use this tag
-    const dependentJourneys = [];
+    const dependentJourneys: never[] = [];
 
     return {
       tags: dependentTags,
@@ -34,7 +48,7 @@ export default function DeleteTagModal({ isOpen, onClose, tag }) {
     };
   }, [tag, state.tags]);
 
-  const handleDelete = async () => {
+  const handleDelete = async (): Promise<void> => {
     if (!tag) return;
 
     setIsDeleting(true);
@@ -44,12 +58,13 @@ export default function DeleteTagModal({ isOpen, onClose, tag }) {
       const result = await deleteTag(tag.id);
 
       if (result.error) {
-        setError(result.error.message || 'Failed to delete tag');
+        setError(typeof result.error === 'string' ? result.error : 'Failed to delete tag');
       } else {
         onClose();
       }
     } catch (err) {
-      setError(err.message || 'An unexpected error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -130,7 +145,7 @@ export default function DeleteTagModal({ isOpen, onClose, tag }) {
                                   tag:
                                 </p>
                                 <ul className="list-disc list-inside ml-2 mt-1">
-                                  {dependencies.journeys.map((j) => (
+                                  {dependencies.journeys.map((j: any) => (
                                     <li key={j.id}>{j.name}</li>
                                   ))}
                                 </ul>

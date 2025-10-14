@@ -4,18 +4,28 @@
 
 import { Tag, TagCollection, ValidationError } from './tag';
 
+// Re-export Tag for convenience
+export type { Tag };
+
 // Project Types
 export interface Project {
   id: string;
   name: string;
   description?: string;
+  clientProfile?: ClientProfile;
+  dataModel?: DataModel;
+  tags?: TagCollection;
+  journeys?: Journey[];
   createdAt: string;
   updatedAt: string;
-  userId: string;
+  userId?: string;
+  owner_id?: string;
 }
 
 // Client Profile Types
 export interface ClientProfile {
+  basicInfo?: Record<string, unknown>;
+  integrationSpecs?: Record<string, unknown>;
   industry?: string;
   size?: string;
   objectives?: string[];
@@ -40,8 +50,12 @@ export interface CustomObject {
 }
 
 export interface DataModel {
-  customObjects: CustomObject[];
-  customFields: CustomField[];
+  objects?: CustomObject[];
+  fields?: CustomField[];
+  mappings?: unknown[];
+  associations?: unknown[];
+  customObjects?: CustomObject[];
+  customFields?: CustomField[];
 }
 
 // Journey Types
@@ -76,33 +90,30 @@ export interface ProjectState {
   validationErrors: ValidationError[];
 }
 
-// Project Actions
+// Project Actions (matching actual reducer implementation)
 export type ProjectAction =
-  | { type: 'SET_CURRENT_PROJECT'; payload: string }
-  | { type: 'SET_PROJECTS'; payload: Project[] }
-  | { type: 'ADD_PROJECT'; payload: Project }
-  | { type: 'UPDATE_PROJECT'; payload: Project }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: { error: string; validationErrors?: ValidationError[] } }
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'LOAD_PROJECTS'; payload: Project[] }
+  | { type: 'CREATE_PROJECT'; payload: Project }
+  | { type: 'LOAD_PROJECT'; payload: Project }
+  | { type: 'UPDATE_PROJECT_IN_LIST'; payload: Project }
   | { type: 'DELETE_PROJECT'; payload: string }
-  | { type: 'SET_CLIENT_PROFILE'; payload: ClientProfile }
-  | { type: 'SET_DATA_MODEL'; payload: DataModel }
-  | { type: 'ADD_CUSTOM_OBJECT'; payload: CustomObject }
-  | { type: 'UPDATE_CUSTOM_OBJECT'; payload: CustomObject }
-  | { type: 'DELETE_CUSTOM_OBJECT'; payload: string }
-  | { type: 'ADD_CUSTOM_FIELD'; payload: { objectId: string; field: CustomField } }
-  | { type: 'UPDATE_CUSTOM_FIELD'; payload: { objectId: string; field: CustomField } }
-  | { type: 'DELETE_CUSTOM_FIELD'; payload: { objectId: string; fieldId: string } }
-  | { type: 'SET_TAGS'; payload: TagCollection }
+  | { type: 'UPDATE_CLIENT_PROFILE'; payload: Partial<ClientProfile> }
+  | { type: 'ADD_OBJECT'; payload: CustomObject }
+  | { type: 'UPDATE_OBJECT'; payload: CustomObject }
+  | { type: 'DELETE_OBJECT'; payload: string }
+  | { type: 'ADD_FIELD'; payload: { objectId: string; field: CustomField } }
+  | { type: 'UPDATE_FIELD'; payload: { objectId: string; field: CustomField } }
+  | { type: 'DELETE_FIELD'; payload: { objectId: string; fieldId: string } }
+  | { type: 'UPDATE_TAGS'; payload: Partial<TagCollection> }
   | { type: 'ADD_TAG'; payload: Tag }
   | { type: 'UPDATE_TAG'; payload: Tag }
   | { type: 'DELETE_TAG'; payload: string }
-  | { type: 'SET_JOURNEYS'; payload: Journey[] }
-  | { type: 'ADD_JOURNEY'; payload: Journey }
-  | { type: 'UPDATE_JOURNEY'; payload: Journey }
-  | { type: 'DELETE_JOURNEY'; payload: string }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_VALIDATION_ERRORS'; payload: ValidationError[] }
-  | { type: 'SET_SAVED_AT'; payload: string };
+  | { type: 'ADD_TAG_FROM_LIBRARY'; payload: Tag }
+  | { type: 'UPDATE_JOURNEYS'; payload: Journey[] }
+  | { type: 'UPDATE_SAVED_AT'; payload: string };
 
 // Context Value
 export interface ProjectContextValue {
