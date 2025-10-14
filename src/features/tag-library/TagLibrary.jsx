@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext-v2';
 import { Plus, Search, Filter } from 'lucide-react';
 import TagCard from './components/TagCard';
+import TagModal from './components/TagModal';
 import tagLibraryData from '../../data/tagLibrary.json';
 
 /**
@@ -22,6 +23,7 @@ export default function TagLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showTagModal, setShowTagModal] = useState(false);
 
   // Get all available tags (pre-built library)
   const availableTags = tagLibraryData.tags;
@@ -93,6 +95,7 @@ export default function TagLibrary() {
           </div>
           <button
             type="button"
+            onClick={() => setShowTagModal(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <Plus className="h-5 w-5 mr-2" />
@@ -378,6 +381,13 @@ export default function TagLibrary() {
           </p>
         </div>
       )}
+
+      {/* Tag Modal */}
+      <TagModal
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        mode="create"
+      />
     </div>
   );
 }
