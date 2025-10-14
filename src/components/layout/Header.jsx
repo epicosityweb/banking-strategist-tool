@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Building2, Save, Clock, Upload } from 'lucide-react';
+import { Building2, Save, Clock, LogOut, User } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext-v2';
-import MigrationModal from '../migration/MigrationModal';
+import { useAuth } from '../../context/AuthContext';
 
 function Header() {
   const { state, saveProject } = useProject();
+  const { user, signOut } = useAuth();
   const { projectId } = useParams();
-  const [showMigrationModal, setShowMigrationModal] = useState(false);
 
   const handleSave = async () => {
     await saveProject();
   };
 
-  const handleMigrationComplete = (results) => {
-    console.log('Migration complete:', results);
-    // You could show a success toast here
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   const currentProjectData = state.projects.find(p => p.id === projectId);
@@ -41,17 +40,6 @@ function Header() {
           </Link>
 
           <div className="flex items-center gap-4">
-            {/* Migration Button (shown on dashboard) */}
-            {!projectId && (
-              <button
-                onClick={() => setShowMigrationModal(true)}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Migrate to Cloud</span>
-              </button>
-            )}
-
             {/* Save button and timestamp (shown when project is open) */}
             {projectId && (
               <>
@@ -73,16 +61,25 @@ function Header() {
                 </button>
               </>
             )}
+
+            {/* User Account Menu */}
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <User className="w-4 h-4" />
+                <span>{user?.email}</span>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Migration Modal */}
-      <MigrationModal
-        isOpen={showMigrationModal}
-        onClose={() => setShowMigrationModal(false)}
-        onComplete={handleMigrationComplete}
-      />
     </header>
   );
 }

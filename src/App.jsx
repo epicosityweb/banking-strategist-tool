@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext-v2';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
 import Layout from './components/layout/Layout';
 import Dashboard from './features/project-management/Dashboard';
 import ClientProfile from './features/client-profile/ClientProfile';
@@ -11,23 +14,36 @@ import Exporter from './features/exporter/Exporter';
 
 function App() {
   return (
-    <ProjectProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="project/:projectId">
-              <Route path="client-profile" element={<ClientProfile />} />
-              <Route path="data-model" element={<DataModel />} />
-              <Route path="tags" element={<TagDesigner />} />
-              <Route path="simulator" element={<JourneySimulator />} />
-              <Route path="export" element={<Exporter />} />
+    <AuthProvider>
+      <ProjectProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="project/:projectId">
+                <Route path="client-profile" element={<ClientProfile />} />
+                <Route path="data-model" element={<DataModel />} />
+                <Route path="tags" element={<TagDesigner />} />
+                <Route path="simulator" element={<JourneySimulator />} />
+                <Route path="export" element={<Exporter />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </Router>
-    </ProjectProvider>
+          </Routes>
+        </Router>
+      </ProjectProvider>
+    </AuthProvider>
   );
 }
 

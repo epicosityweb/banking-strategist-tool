@@ -11,10 +11,18 @@ import { supabase } from '../../lib/supabase';
  *
  * Database table: implementations
  * - id: UUID (primary key)
- * - user_id: UUID (foreign key to auth.users)
+ * - owner_id: UUID (foreign key to auth.users)
  * - name: TEXT
  * - status: TEXT
  * - data: JSONB (contains clientProfile, dataModel, tags, journeys)
+ * - created_at: TIMESTAMPTZ
+ * - updated_at: TIMESTAMPTZ
+ *
+ * Database table: project_permissions
+ * - id: UUID (primary key)
+ * - project_id: UUID (foreign key to implementations)
+ * - user_id: UUID (foreign key to auth.users)
+ * - role: TEXT ('owner', 'editor', 'viewer')
  * - created_at: TIMESTAMPTZ
  * - updated_at: TIMESTAMPTZ
  */
@@ -52,7 +60,7 @@ class SupabaseAdapter extends IStorageAdapter {
   }
 
   /**
-   * Get all projects for the current user
+   * Get all projects (all authenticated users can see all projects)
    */
   async getAllProjects() {
     try {
@@ -62,7 +70,6 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data, error } = await this.supabase
         .from('implementations')
         .select('*')
-        .eq('user_id', userId)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -100,7 +107,6 @@ class SupabaseAdapter extends IStorageAdapter {
         .from('implementations')
         .select('*')
         .eq('id', projectId)
-        .eq('user_id', userId)
         .single();
 
       if (error) {
@@ -140,7 +146,7 @@ class SupabaseAdapter extends IStorageAdapter {
         .from('implementations')
         .insert({
           id: projectId,
-          user_id: userId,
+          owner_id: userId,
           name: projectData.name,
           status: projectData.status || 'draft',
           data: {
@@ -204,7 +210,6 @@ class SupabaseAdapter extends IStorageAdapter {
           data: updatedData,
         })
         .eq('id', projectId)
-        .eq('user_id', userId)
         .select()
         .single();
 
@@ -246,8 +251,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { error } = await this.supabase
         .from('implementations')
         .delete()
-        .eq('id', projectId)
-        .eq('user_id', userId);
+        .eq('id', projectId);
 
       if (error) {
         return { data: null, error };
