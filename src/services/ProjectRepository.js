@@ -1,4 +1,5 @@
 import LocalStorageAdapter from './adapters/LocalStorageAdapter';
+import SupabaseAdapter from './adapters/SupabaseAdapter';
 import validationService from './ValidationService';
 
 /**
@@ -324,8 +325,26 @@ class ProjectRepository {
   }
 }
 
-// Create and export a singleton instance with localStorage adapter
-const projectRepository = new ProjectRepository(new LocalStorageAdapter());
+/**
+ * Adapter Factory
+ *
+ * Creates the appropriate storage adapter based on configuration.
+ * Defaults to localStorage for backward compatibility.
+ */
+function createAdapter() {
+  const adapterType = import.meta.env.VITE_STORAGE_ADAPTER || 'localStorage';
 
-export { projectRepository, ProjectRepository };
+  switch (adapterType.toLowerCase()) {
+    case 'supabase':
+      return new SupabaseAdapter();
+    case 'localstorage':
+    default:
+      return new LocalStorageAdapter();
+  }
+}
+
+// Create and export a singleton instance with configured adapter
+const projectRepository = new ProjectRepository(createAdapter());
+
+export { projectRepository, ProjectRepository, createAdapter };
 export default projectRepository;

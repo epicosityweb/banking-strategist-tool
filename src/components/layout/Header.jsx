@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Building2, Save, Clock } from 'lucide-react';
+import { Building2, Save, Clock, Upload } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext-v2';
+import MigrationModal from '../migration/MigrationModal';
 
 function Header() {
   const { state, saveProject } = useProject();
   const { projectId } = useParams();
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
 
   const handleSave = async () => {
     await saveProject();
+  };
+
+  const handleMigrationComplete = (results) => {
+    console.log('Migration complete:', results);
+    // You could show a success toast here
   };
 
   const currentProjectData = state.projects.find(p => p.id === projectId);
@@ -33,28 +40,49 @@ function Header() {
             </div>
           </Link>
 
-          {projectId && (
-            <div className="flex items-center gap-4">
-              {state.savedAt && (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Clock className="w-4 h-4" />
-                  <span>
-                    Saved {new Date(state.savedAt).toLocaleTimeString()}
-                  </span>
-                </div>
-              )}
-
+          <div className="flex items-center gap-4">
+            {/* Migration Button (shown on dashboard) */}
+            {!projectId && (
               <button
-                onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                onClick={() => setShowMigrationModal(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
               >
-                <Save className="w-4 h-4" />
-                <span>Save</span>
+                <Upload className="w-4 h-4" />
+                <span>Migrate to Cloud</span>
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Save button and timestamp (shown when project is open) */}
+            {projectId && (
+              <>
+                {state.savedAt && (
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <Clock className="w-4 h-4" />
+                    <span>
+                      Saved {new Date(state.savedAt).toLocaleTimeString()}
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Migration Modal */}
+      <MigrationModal
+        isOpen={showMigrationModal}
+        onClose={() => setShowMigrationModal(false)}
+        onComplete={handleMigrationComplete}
+      />
     </header>
   );
 }

@@ -1,0 +1,365 @@
+{
+  "statistics": {
+    "detectionDate": "2025-10-14T13:28:04.920Z",
+    "formats": {
+      "javascript": {
+        "sources": {
+          "src/features/data-model/components/TemplateLibrary.jsx": {
+            "lines": 70,
+            "tokens": 508,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/TemplateCard.jsx": {
+            "lines": 35,
+            "tokens": 317,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/ObjectModal.jsx": {
+            "lines": 145,
+            "tokens": 1043,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/ObjectDetailModal.jsx": {
+            "lines": 85,
+            "tokens": 649,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/ObjectCard.jsx": {
+            "lines": 55,
+            "tokens": 446,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/IconPicker.jsx": {
+            "lines": 63,
+            "tokens": 434,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/FieldTable.jsx": {
+            "lines": 119,
+            "tokens": 970,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/FieldModal.jsx": {
+            "lines": 235,
+            "tokens": 1903,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/DeleteObjectModal.jsx": {
+            "lines": 98,
+            "tokens": 917,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/DataModel.jsx": {
+            "lines": 78,
+            "tokens": 565,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 983,
+          "tokens": 7752,
+          "sources": 10,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "jsx": {
+        "sources": {
+          "src/features/data-model/components/TemplateLibrary.jsx": {
+            "lines": 108,
+            "tokens": 812,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/TemplateCard.jsx": {
+            "lines": 84,
+            "tokens": 735,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/ObjectModal.jsx": {
+            "lines": 344,
+            "tokens": 2778,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 50,
+            "duplicatedTokens": 358,
+            "percentage": 14.53,
+            "percentageTokens": 12.89,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/ObjectDetailModal.jsx": {
+            "lines": 169,
+            "tokens": 1318,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/ObjectCard.jsx": {
+            "lines": 99,
+            "tokens": 827,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/IconPicker.jsx": {
+            "lines": 101,
+            "tokens": 786,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/FieldTable.jsx": {
+            "lines": 180,
+            "tokens": 1425,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/FieldModal.jsx": {
+            "lines": 463,
+            "tokens": 3937,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 50,
+            "duplicatedTokens": 358,
+            "percentage": 10.8,
+            "percentageTokens": 9.09,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/components/DeleteObjectModal.jsx": {
+            "lines": 152,
+            "tokens": 1361,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/features/data-model/DataModel.jsx": {
+            "lines": 167,
+            "tokens": 1294,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 1867,
+          "tokens": 15273,
+          "sources": 10,
+          "clones": 2,
+          "duplicatedLines": 50,
+          "duplicatedTokens": 358,
+          "percentage": 2.68,
+          "percentageTokens": 2.34,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 2850,
+      "tokens": 23025,
+      "sources": 20,
+      "clones": 2,
+      "duplicatedLines": 50,
+      "duplicatedTokens": 358,
+      "percentage": 1.75,
+      "percentageTokens": 1.55,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "jsx",
+      "lines": 16,
+      "fragment": "}\n\n    setErrors(newErrors);\n    return Object.keys(newErrors).length === 0;\n  };\n\n  const handleSubmit = (e) => {\n    e.preventDefault();\n\n    if (!validate()) {\n      return;\n    }\n\n    const normalizedName = formData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');\n\n    const",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/features/data-model/components/FieldModal.jsx",
+        "start": 166,
+        "end": 181,
+        "startLoc": {
+          "line": 166,
+          "column": 5,
+          "position": 1586
+        },
+        "endLoc": {
+          "line": 181,
+          "column": 6,
+          "position": 1688
+        }
+      },
+      "secondFile": {
+        "name": "src/features/data-model/components/ObjectModal.jsx",
+        "start": 120,
+        "end": 135,
+        "startLoc": {
+          "line": 120,
+          "column": 5,
+          "position": 1168
+        },
+        "endLoc": {
+          "line": 135,
+          "column": 3,
+          "position": 1270
+        }
+      }
+    },
+    {
+      "format": "jsx",
+      "lines": 36,
+      "fragment": "</div>\n          )}\n\n          {/* Validation Errors Summary */}\n          {Object.keys(errors).length > 0 && (\n            <div className=\"bg-error-50 border border-error-200 rounded-lg p-4\">\n              <div className=\"flex items-start gap-2\">\n                <AlertCircle className=\"w-5 h-5 text-error-600 flex-shrink-0 mt-0.5\" />\n                <div>\n                  <p className=\"text-sm font-medium text-error-900 mb-1\">\n                    Please fix the following errors:\n                  </p>\n                  <ul className=\"text-xs text-error-700 list-disc list-inside\">\n                    {Object.values(errors).map((error, idx) => (\n                      <li key={idx}>{error}</li>\n                    ))}\n                  </ul>\n                </div>\n              </div>\n            </div>\n          )}\n\n          {/* Actions */}\n          <div className=\"flex items-center justify-end gap-3 pt-4 border-t border-slate-200\">\n            <button\n              type=\"button\"\n              onClick={onClose}\n              className=\"px-4 py-2 text-slate-600 hover:text-slate-900 font-medium transition-colors\"\n            >\n              Cancel\n            </button>\n            <button\n              type=\"submit\"\n              className=\"px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium\"\n            >\n              {isEditing ? 'Save Changes' : 'Add Field'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/features/data-model/components/FieldModal.jsx",
+        "start": 420,
+        "end": 455,
+        "startLoc": {
+          "line": 420,
+          "column": 13,
+          "position": 3641
+        },
+        "endLoc": {
+          "line": 455,
+          "column": 12,
+          "position": 3897
+        }
+      },
+      "secondFile": {
+        "name": "src/features/data-model/components/ObjectModal.jsx",
+        "start": 292,
+        "end": 327,
+        "startLoc": {
+          "line": 292,
+          "column": 13,
+          "position": 2410
+        },
+        "endLoc": {
+          "line": 327,
+          "column": 16,
+          "position": 2666
+        }
+      }
+    }
+  ]
+}

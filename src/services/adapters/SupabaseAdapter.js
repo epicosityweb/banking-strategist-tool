@@ -1,28 +1,32 @@
 import IStorageAdapter from './IStorageAdapter';
 import { generateId } from '../../utils/idGenerator';
+import { supabase } from '../../lib/supabase';
 
 /**
  * Supabase Adapter
  *
  * Implements the storage adapter interface using Supabase backend.
- * This provides a migration path from localStorage to PostgreSQL
- * with authentication, real-time updates, and Row Level Security.
+ * This provides cloud persistence with PostgreSQL, authentication,
+ * and Row Level Security for multi-user support.
  *
- * NOTE: This is a skeleton implementation. Full implementation requires:
- * 1. Install @supabase/supabase-js: npm install @supabase/supabase-js
- * 2. Set up Supabase project and get credentials
- * 3. Run database migrations from IMPLEMENTATION-PLAN.md
- * 4. Configure environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
+ * Database table: implementations
+ * - id: UUID (primary key)
+ * - user_id: UUID (foreign key to auth.users)
+ * - name: TEXT
+ * - status: TEXT
+ * - data: JSONB (contains clientProfile, dataModel, tags, journeys)
+ * - created_at: TIMESTAMPTZ
+ * - updated_at: TIMESTAMPTZ
  */
 class SupabaseAdapter extends IStorageAdapter {
-  constructor(supabaseClient) {
+  constructor(supabaseClient = supabase) {
     super();
     this.supabase = supabaseClient;
 
     if (!this.supabase) {
       throw new Error(
         'SupabaseAdapter requires a Supabase client instance. ' +
-          'Import { createClient } from "@supabase/supabase-js" and pass it to the constructor.'
+          'Ensure Supabase is properly configured in src/lib/supabase.js'
       );
     }
   }
