@@ -58,7 +58,7 @@ const INTEGRATION_PLATFORMS = [
 ];
 
 function IntegrationSpecifications() {
-  const { state, dispatch } = useProject();
+  const { state, updateIntegrationSpecs } = useProject();
   const [formData, setFormData] = useState({
     exportMethod: '',
     exportFormat: '',
@@ -77,6 +77,8 @@ function IntegrationSpecifications() {
 
   const [saved, setSaved] = useState(false);
   const [warnings, setWarnings] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   // Load existing data
   useEffect(() => {
@@ -119,13 +121,19 @@ function IntegrationSpecifications() {
     setSaved(false);
   };
 
-  const handleSave = () => {
-    dispatch({
-      type: 'UPDATE_CLIENT_PROFILE',
-      payload: {
-        integrationSpecs: formData,
-      },
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    setSaved(false);
+
+    const { error } = await updateIntegrationSpecs(formData);
+
+    setIsSaving(false);
+
+    if (error) {
+      setSaveError('Failed to save. Please try again.');
+      return;
+    }
 
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -310,19 +318,28 @@ function IntegrationSpecifications() {
         </div>
       </div>
 
-      <div className="flex items-center justify-end">
-        {saved && (
-          <div className="flex items-center gap-2 text-success-600 mr-4">
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="text-sm">Saved successfully!</span>
-          </div>
-        )}
+      <div className="flex items-center justify-between">
+        <div>
+          {saveError && (
+            <div className="flex items-center gap-2 text-error-600">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="text-sm">{saveError}</span>
+            </div>
+          )}
+          {saved && (
+            <div className="flex items-center gap-2 text-success-600">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm">Saved successfully!</span>
+            </div>
+          )}
+        </div>
 
         <button
           onClick={handleSave}
-          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          disabled={isSaving}
+          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          Save Integration Specifications
+          {isSaving ? 'Saving...' : 'Save Integration Specifications'}
         </button>
       </div>
     </div>

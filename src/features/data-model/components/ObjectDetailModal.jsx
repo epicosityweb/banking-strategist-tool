@@ -6,9 +6,11 @@ import FieldModal from './FieldModal';
 import { useProject } from '../../../context/ProjectContext-v2';
 
 function ObjectDetailModal({ isOpen, onClose, object }) {
-  const { dispatch } = useProject();
+  const { addField, updateField, deleteField } = useProject();
   const [showFieldModal, setShowFieldModal] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
+  const [isDeletingFieldId, setIsDeletingFieldId] = useState(null);
+  const [error, setError] = useState(null);
 
   if (!isOpen || !object) return null;
 
@@ -25,38 +27,41 @@ function ObjectDetailModal({ isOpen, onClose, object }) {
     setShowFieldModal(true);
   };
 
-  const handleDeleteField = (field) => {
-    if (window.confirm(`Are you sure you want to delete the field "${field.label}"?`)) {
-      dispatch({
-        type: 'DELETE_FIELD',
-        payload: {
-          objectId: object.id,
-          fieldId: field.id,
-        },
-      });
+  const handleDeleteField = async (field) => {
+    if (!window.confirm(`Are you sure you want to delete the field "${field.label}"?`)) {
+      return;
+    }
+
+    setIsDeletingFieldId(field.id);
+    setError(null);
+
+    const { error: deleteError } = await deleteField(object.id, field.id);
+
+    setIsDeletingFieldId(null);
+
+    if (deleteError) {
+      setError('Failed to delete field. Please try again.');
     }
   };
 
-  const handleSaveField = (fieldData) => {
+  const handleSaveField = async (fieldData) => {
+    setError(null);
+
+    let result;
     if (selectedField) {
       // Update existing field
-      dispatch({
-        type: 'UPDATE_FIELD',
-        payload: {
-          objectId: object.id,
-          field: fieldData,
-        },
-      });
+      result = await updateField(object.id, selectedField.id, fieldData);
     } else {
       // Add new field
-      dispatch({
-        type: 'ADD_FIELD',
-        payload: {
-          objectId: object.id,
-          field: fieldData,
-        },
-      });
+      result = await addField(object.id, fieldData);
     }
+
+    if (result.error) {
+      setError(result.error.message || 'Failed to save field. Please try again.');
+      return false;
+    }
+
+    return true;
   };
 
   return (
@@ -91,6 +96,18 @@ function ObjectDetailModal({ isOpen, onClose, object }) {
 
           {/* Content */}
           <div className="p-6">
+            {error && (
+              <div className="mb-4 bg-error-50 border border-error-200 text-error-700 px-4 py-3 rounded-lg flex items-center justify-between">
+                <span>{error}</span>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-error-500 hover:text-error-700"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">Fields</h3>
               <button
@@ -108,6 +125,7 @@ function ObjectDetailModal({ isOpen, onClose, object }) {
               onAddField={handleAddField}
               onEditField={handleEditField}
               onDeleteField={handleDeleteField}
+              isDeletingFieldId={isDeletingFieldId}
             />
 
             {/* Object Metadata */}

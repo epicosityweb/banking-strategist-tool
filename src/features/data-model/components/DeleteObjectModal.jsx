@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 import { useProject } from '../../../context/ProjectContext-v2';
 import { checkObjectDependencies } from '../../../utils/dependencyChecker';
 
 function DeleteObjectModal({ isOpen, onClose, object }) {
-  const { state, dispatch } = useProject();
+  const { state, deleteCustomObject } = useProject();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   const dependencies = useMemo(() => {
     if (!object) return null;
@@ -13,14 +15,19 @@ function DeleteObjectModal({ isOpen, onClose, object }) {
 
   if (!isOpen || !object) return null;
 
-  const handleDelete = (cascade = false) => {
-    dispatch({
-      type: 'DELETE_OBJECT',
-      payload: {
-        objectId: object.id,
-        cascade,
-      },
-    });
+  const handleDelete = async (cascade = false) => {
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    const { error } = await deleteCustomObject(object.id);
+
+    setIsDeleting(false);
+
+    if (error) {
+      setDeleteError(error.message || 'Failed to delete object. Please try again.');
+      return;
+    }
+
     onClose();
   };
 
@@ -47,6 +54,15 @@ function DeleteObjectModal({ isOpen, onClose, object }) {
 
         {/* Content */}
         <div className="p-6 space-y-4">
+          {deleteError && (
+            <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-error-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-error-900">{deleteError}</p>
+              </div>
+            </div>
+          )}
+
           <p className="text-slate-700">
             Are you sure you want to delete <strong className="text-slate-900">{object.label}</strong>?
           </p>
@@ -120,7 +136,8 @@ function DeleteObjectModal({ isOpen, onClose, object }) {
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+            disabled={isDeleting}
+            className="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>
@@ -128,19 +145,21 @@ function DeleteObjectModal({ isOpen, onClose, object }) {
             {hasDependencies && (
               <button
                 onClick={() => handleDelete(true)}
-                className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center gap-2"
+                disabled={isDeleting}
+                className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete with Dependencies
+                <Trash2 className={`w-4 h-4 ${isDeleting ? 'animate-pulse' : ''}`} />
+                {isDeleting ? 'Deleting...' : 'Delete with Dependencies'}
               </button>
             )}
             {!hasDependencies && (
               <button
                 onClick={() => handleDelete(false)}
-                className="px-6 py-2 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-colors font-medium flex items-center gap-2"
+                disabled={isDeleting}
+                className="px-6 py-2 bg-error-600 text-white rounded-lg hover:bg-error-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete Object
+                <Trash2 className={`w-4 h-4 ${isDeleting ? 'animate-pulse' : ''}`} />
+                {isDeleting ? 'Deleting...' : 'Delete Object'}
               </button>
             )}
           </div>

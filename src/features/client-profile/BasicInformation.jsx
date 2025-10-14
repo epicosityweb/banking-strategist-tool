@@ -62,7 +62,7 @@ const HUBSPOT_TIERS = [
 ];
 
 function BasicInformation() {
-  const { state, dispatch } = useProject();
+  const { state, updateClientProfile } = useProject();
   const [formData, setFormData] = useState({
     institutionName: '',
     fiType: '',
@@ -88,6 +88,8 @@ function BasicInformation() {
 
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   // Load existing data
   useEffect(() => {
@@ -141,17 +143,25 @@ function BasicInformation() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    dispatch({
-      type: 'UPDATE_CLIENT_PROFILE',
-      payload: {
-        basicInfo: formData,
-      },
+    setIsSaving(true);
+    setSaveError(null);
+    setSaved(false);
+
+    const { error } = await updateClientProfile({
+      basicInfo: formData,
     });
+
+    setIsSaving(false);
+
+    if (error) {
+      setSaveError('Failed to save. Please try again.');
+      return;
+    }
 
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -375,6 +385,12 @@ function BasicInformation() {
               <span className="text-sm">Please fix the errors above</span>
             </div>
           )}
+          {saveError && (
+            <div className="flex items-center gap-2 text-error-600">
+              <AlertCircle className="w-5 h-5" />
+              <span className="text-sm">{saveError}</span>
+            </div>
+          )}
           {saved && (
             <div className="flex items-center gap-2 text-success-600">
               <CheckCircle2 className="w-5 h-5" />
@@ -385,9 +401,10 @@ function BasicInformation() {
 
         <button
           onClick={handleSave}
-          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          disabled={isSaving}
+          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          Save Basic Information
+          {isSaving ? 'Saving...' : 'Save Basic Information'}
         </button>
       </div>
     </div>

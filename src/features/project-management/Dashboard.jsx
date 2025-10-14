@@ -5,13 +5,19 @@ import { useProject } from '../../context/ProjectContext-v2';
 import Card from '../../components/ui/Card';
 
 function Dashboard() {
-  const { state, dispatch } = useProject();
+  const { state, createProject, loadProject, deleteProject } = useProject();
   const navigate = useNavigate();
   const [showNewProject, setShowNewProject] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!projectName.trim()) return;
+
+    setIsCreating(true);
+    setError(null);
 
     const newProject = {
       id: `project-${Date.now()}`,
@@ -36,24 +42,52 @@ function Dashboard() {
       savedAt: new Date().toISOString(),
     };
 
-    dispatch({ type: 'CREATE_PROJECT', payload: newProject });
-    navigate(`/project/${newProject.id}/client-profile`);
+    const { data, error: createError } = await createProject(newProject);
+
+    setIsCreating(false);
+
+    if (createError) {
+      setError('Failed to create project. Please try again.');
+      return;
+    }
+
+    if (data) {
+      setShowNewProject(false);
+      setProjectName('');
+      navigate(`/project/${data.id}/client-profile`);
+    }
   };
 
-  const handleOpenProject = (projectId) => {
+  const handleOpenProject = async (projectId) => {
     const project = state.projects.find(p => p.id === projectId);
     if (project) {
-      dispatch({ type: 'LOAD_PROJECT', payload: project });
+      const { error: loadError } = await loadProject(project);
+
+      if (loadError) {
+        setError('Failed to load project. Please try again.');
+        return;
+      }
+
       navigate(`/project/${projectId}/client-profile`);
     }
   };
 
-  const handleDeleteProject = (projectId, e) => {
+  const handleDeleteProject = async (projectId, e) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      const updatedProjects = state.projects.filter(p => p.id !== projectId);
-      localStorage.setItem('strategist-projects', JSON.stringify(updatedProjects));
-      dispatch({ type: 'LOAD_PROJECTS', payload: updatedProjects });
+
+    if (!window.confirm('Are you sure you want to delete this project?')) {
+      return;
+    }
+
+    setIsDeletingId(projectId);
+    setError(null);
+
+    const { error: deleteError } = await deleteProject(projectId);
+
+    setIsDeletingId(null);
+
+    if (deleteError) {
+      setError('Failed to delete project. Please try again.');
     }
   };
 
@@ -69,12 +103,25 @@ function Dashboard() {
 
         <button
           onClick={() => setShowNewProject(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          disabled={isCreating}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>New Project</span>
         </button>
       </div>
+
+      {error && (
+        <div className="bg-error-50 border border-error-200 text-error-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-error-500 hover:text-error-700"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {showNewProject && (
         <Card className="border-primary-200 bg-primary-50">
@@ -97,17 +144,19 @@ function Dashboard() {
             <div className="flex gap-3">
               <button
                 onClick={handleCreateProject}
-                disabled={!projectName.trim()}
+                disabled={!projectName.trim() || isCreating}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
               >
-                Create Project
+                {isCreating ? 'Creating...' : 'Create Project'}
               </button>
               <button
                 onClick={() => {
                   setShowNewProject(false);
                   setProjectName('');
+                  setError(null);
                 }}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                disabled={isCreating}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </button>
@@ -152,9 +201,10 @@ function Dashboard() {
                   </div>
                   <button
                     onClick={(e) => handleDeleteProject(project.id, e)}
-                    className="p-2 text-slate-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-colors"
+                    disabled={isDeletingId === project.id}
+                    className="p-2 text-slate-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className={`w-4 h-4 ${isDeletingId === project.id ? 'animate-pulse' : ''}`} />
                   </button>
                 </div>
 

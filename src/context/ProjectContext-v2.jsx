@@ -609,6 +609,94 @@ export function ProjectProvider({ children }) {
     [state.currentProject, state.dataModel.objects]
   );
 
+  /**
+   * Update client profile (basic information)
+   */
+  const updateClientProfile = useCallback(
+    async (updates) => {
+      if (!state.currentProject) {
+        return { data: null, error: 'No project selected' };
+      }
+
+      // Store original for rollback
+      const original = { ...state.clientProfile };
+
+      // Merge updates with existing profile
+      const updatedProfile = {
+        ...state.clientProfile,
+        basicInfo: {
+          ...state.clientProfile.basicInfo,
+          ...updates.basicInfo,
+        },
+      };
+
+      // Optimistic update
+      dispatch({ type: 'UPDATE_CLIENT_PROFILE', payload: updatedProfile });
+
+      const { data, error } = await projectRepository.updateProject(
+        state.currentProject,
+        { clientProfile: updatedProfile }
+      );
+
+      if (error) {
+        // Rollback
+        dispatch({ type: 'UPDATE_CLIENT_PROFILE', payload: original });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: { error: error.message },
+        });
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    },
+    [state.currentProject, state.clientProfile]
+  );
+
+  /**
+   * Update integration specifications
+   */
+  const updateIntegrationSpecs = useCallback(
+    async (specs) => {
+      if (!state.currentProject) {
+        return { data: null, error: 'No project selected' };
+      }
+
+      // Store original for rollback
+      const original = { ...state.clientProfile };
+
+      // Merge specs with existing profile
+      const updatedProfile = {
+        ...state.clientProfile,
+        integrationSpecs: {
+          ...state.clientProfile.integrationSpecs,
+          ...specs,
+        },
+      };
+
+      // Optimistic update
+      dispatch({ type: 'UPDATE_CLIENT_PROFILE', payload: updatedProfile });
+
+      const { data, error } = await projectRepository.updateProject(
+        state.currentProject,
+        { clientProfile: updatedProfile }
+      );
+
+      if (error) {
+        // Rollback
+        dispatch({ type: 'UPDATE_CLIENT_PROFILE', payload: original });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: { error: error.message },
+        });
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    },
+    [state.currentProject, state.clientProfile]
+  );
+
   const value = {
     state,
     dispatch,
@@ -617,6 +705,8 @@ export function ProjectProvider({ children }) {
     createProject,
     loadProject,
     deleteProject,
+    updateClientProfile,
+    updateIntegrationSpecs,
     addCustomObject,
     updateCustomObject,
     deleteCustomObject,

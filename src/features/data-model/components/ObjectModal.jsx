@@ -8,7 +8,7 @@ import FormField from '../../../components/ui/FormField';
 import IconPicker from './IconPicker';
 
 function ObjectModal({ isOpen, onClose, object = null, template = null }) {
-  const { state, dispatch } = useProject();
+  const { state, addCustomObject, updateCustomObject } = useProject();
   const isEditing = !!object;
   const currentProjectId = state.currentProject || 'client';
 
@@ -23,6 +23,8 @@ function ObjectModal({ isOpen, onClose, object = null, template = null }) {
   const [errors, setErrors] = useState({});
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [apiNameManuallyEdited, setApiNameManuallyEdited] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   // Initialize form data
   useEffect(() => {
@@ -123,33 +125,33 @@ function ObjectModal({ isOpen, onClose, object = null, template = null }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validate()) {
       return;
     }
 
+    setIsSubmitting(true);
+    setSubmitError(null);
+
     const normalizedName = formData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
+    let result;
     if (object) {
       // Update existing object
-      dispatch({
-        type: 'UPDATE_OBJECT',
-        payload: {
-          ...object,
-          name: normalizedName,
-          label: formData.label,
-          description: formData.description,
-          apiName: formData.apiName,
-          icon: formData.icon,
-          updatedAt: new Date(),
-        },
-      });
+      const updates = {
+        name: normalizedName,
+        label: formData.label,
+        description: formData.description,
+        apiName: formData.apiName,
+        icon: formData.icon,
+      };
+
+      result = await updateCustomObject(object.id, updates);
     } else {
       // Create new object
       const newObject = {
-        id: generateId(),
         name: normalizedName,
         label: formData.label,
         description: formData.description,
@@ -158,20 +160,17 @@ function ObjectModal({ isOpen, onClose, object = null, template = null }) {
         fields: template?.fields?.map(f => ({
           ...f,
           id: generateId(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
         })) || [],
-        associations: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isTemplate: !!template,
-        templateId: template?.id,
       };
 
-      dispatch({
-        type: 'ADD_OBJECT',
-        payload: newObject,
-      });
+      result = await addCustomObject(newObject);
+    }
+
+    setIsSubmitting(false);
+
+    if (result.error) {
+      setSubmitError(result.error.message || 'Failed to save object. Please try again.');
+      return;
     }
 
     onClose();
@@ -311,20 +310,32 @@ function ObjectModal({ isOpen, onClose, object = null, template = null }) {
             </div>
           )}
 
+          {/* Submit Error */}
+          {submitError && (
+            <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-error-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-error-900">{submitError}</p>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              {isEditing ? 'Save Changes' : 'Create Object'}
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Object'}
             </button>
           </div>
         </form>
