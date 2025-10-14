@@ -8,7 +8,7 @@ import Layout from './components/layout/Layout';
 import Dashboard from './features/project-management/Dashboard';
 import ClientProfile from './features/client-profile/ClientProfile';
 import DataModel from './features/data-model/DataModel';
-import TagDesigner from './features/tag-designer/TagDesigner';
+import TagLibrary from './features/tag-library/TagLibrary';
 import JourneySimulator from './features/journey-simulator/JourneySimulator';
 import Exporter from './features/exporter/Exporter';
 
@@ -35,7 +35,7 @@ function App() {
               <Route path="project/:projectId">
                 <Route path="client-profile" element={<ClientProfile />} />
                 <Route path="data-model" element={<DataModel />} />
-                <Route path="tags" element={<TagDesigner />} />
+                <Route path="tags" element={<TagLibrary />} />
                 <Route path="simulator" element={<JourneySimulator />} />
                 <Route path="export" element={<Exporter />} />
               </Route>
