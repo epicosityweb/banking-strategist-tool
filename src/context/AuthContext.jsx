@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, getCurrentUser, signIn, signUp, signOut } from '../lib/supabase';
+import { supabase, getSession, getCurrentUser, signIn, signUp, signOut } from '../lib/supabase';
 
 /**
  * AuthContext
@@ -50,10 +50,30 @@ export function AuthProvider({ children }) {
 
   /**
    * Check for existing authenticated user
+   * First checks for a valid session, then gets user if session exists
    */
   async function checkUser() {
     try {
       setLoading(true);
+      setError(null);
+
+      // First check if we have a valid session
+      const { session, error: sessionError } = await getSession();
+
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setError(sessionError.message);
+        setUser(null);
+        return;
+      }
+
+      // If no session, user is not logged in (this is not an error)
+      if (!session) {
+        setUser(null);
+        return;
+      }
+
+      // If we have a session, get the user
       const { user: currentUser, error: userError } = await getCurrentUser();
 
       if (userError) {
@@ -62,6 +82,7 @@ export function AuthProvider({ children }) {
         setUser(null);
       } else {
         setUser(currentUser);
+        setError(null);
       }
     } catch (err) {
       console.error('Error in checkUser:', err);

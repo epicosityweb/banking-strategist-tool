@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, FolderOpen, Trash2, Calendar } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext-v2';
 import Card from '../../components/ui/Card';
+import { generateId } from '../../utils/idGenerator';
 
 function Dashboard() {
   const { state, createProject, loadProject, deleteProject } = useProject();
@@ -20,7 +21,7 @@ function Dashboard() {
     setError(null);
 
     const newProject = {
-      id: `project-${Date.now()}`,
+      id: generateId(),
       clientProfile: {
         basicInfo: {
           institutionName: projectName,

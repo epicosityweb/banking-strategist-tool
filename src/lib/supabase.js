@@ -31,10 +31,32 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
+ * Get the current session
+ * @returns {Promise<{session: Session | null, error: Error | null}>}
+ */
+export async function getSession() {
+  const { data, error } = await supabase.auth.getSession();
+  return { session: data?.session || null, error };
+}
+
+/**
  * Get the current authenticated user
+ * Checks for valid session first before fetching user
  * @returns {Promise<{user: User | null, error: Error | null}>}
  */
 export async function getCurrentUser() {
+  // First check if we have a valid session
+  const { session, error: sessionError } = await getSession();
+
+  if (sessionError) {
+    return { user: null, error: sessionError };
+  }
+
+  if (!session) {
+    return { user: null, error: null };
+  }
+
+  // If we have a session, get the user
   const { data, error } = await supabase.auth.getUser();
   return { user: data?.user || null, error };
 }

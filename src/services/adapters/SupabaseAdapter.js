@@ -41,9 +41,31 @@ class SupabaseAdapter extends IStorageAdapter {
 
   /**
    * Helper to get current user ID
+   * Checks for valid session first before getting user
    * @private
    */
   async _getCurrentUserId() {
+    // First check if we have a valid session
+    const {
+      data: { session },
+      error: sessionError,
+    } = await this.supabase.auth.getSession();
+
+    if (sessionError) {
+      return {
+        userId: null,
+        error: new Error('Session error: ' + sessionError.message),
+      };
+    }
+
+    if (!session) {
+      return {
+        userId: null,
+        error: new Error('No active session. Please log in.'),
+      };
+    }
+
+    // If we have a session, get the user
     const {
       data: { user },
       error,
@@ -52,7 +74,7 @@ class SupabaseAdapter extends IStorageAdapter {
     if (error || !user) {
       return {
         userId: null,
-        error: new Error('User not authenticated'),
+        error: new Error('User not authenticated: ' + (error?.message || 'Unknown error')),
       };
     }
 
