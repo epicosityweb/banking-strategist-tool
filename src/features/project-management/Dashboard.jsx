@@ -22,6 +22,7 @@ function Dashboard() {
 
     const newProject = {
       id: generateId(),
+      name: projectName,
       clientProfile: {
         basicInfo: {
           institutionName: projectName,
