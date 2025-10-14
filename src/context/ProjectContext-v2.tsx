@@ -24,8 +24,8 @@ interface RepositoryResponse<T> {
   validationErrors?: Array<{ field: string; message: string }>;
 }
 
-// Context value type
-interface ProjectContextValue {
+// Context value type (exported for use in other files)
+export interface ProjectContextValue {
   state: ProjectState;
   dispatch: Dispatch<ProjectAction>;
   saveProject: () => Promise<RepositoryResponse<Project>>;
@@ -345,9 +345,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
 
     dispatch({ type: 'UPDATE_SAVED_AT', payload: new Date().toISOString() });
-    dispatch({ type: 'UPDATE_PROJECT_IN_LIST', payload: data });
+    dispatch({ type: 'UPDATE_PROJECT_IN_LIST', payload: data! });
 
-    return { data, error: null };
+    return { data: data!, error: null };
   }, [state.currentProject, state.clientProfile, state.dataModel, state.tags, state.journeys]);
 
   // Auto-save current project every 30 seconds
@@ -380,8 +380,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       return { data: null, error: errorMessage };
     }
 
-    dispatch({ type: 'CREATE_PROJECT', payload: data });
-    return { data, error: null };
+    dispatch({ type: 'CREATE_PROJECT', payload: data! });
+    return { data: data!, error: null };
   }, []);
 
   /**
@@ -401,8 +401,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       return { data: null, error: errorMessage };
     }
 
-    dispatch({ type: 'LOAD_PROJECT', payload: data });
-    return { data, error: null };
+    dispatch({ type: 'LOAD_PROJECT', payload: data! });
+    return { data: data!, error: null };
   }, []);
 
   /**
@@ -453,8 +453,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
 
       // Update with server data
-      dispatch({ type: 'UPDATE_OBJECT', payload: data });
-      return { data, error: null };
+      dispatch({ type: 'UPDATE_OBJECT', payload: data! });
+      return { data: data!, error: null };
     },
     [state.currentProject]
   );
@@ -495,8 +495,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
 
       // Update with server data
-      dispatch({ type: 'UPDATE_OBJECT', payload: data });
-      return { data, error: null };
+      dispatch({ type: 'UPDATE_OBJECT', payload: data! });
+      return { data: data!, error: null };
     },
     [state.currentProject, state.dataModel.objects]
   );
@@ -562,8 +562,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return { data: null, error: errorMessage };
       }
 
-      dispatch({ type: 'ADD_OBJECT', payload: data });
-      return { data, error: null };
+      dispatch({ type: 'ADD_OBJECT', payload: data! });
+      return { data: data!, error: null };
     },
     [state.currentProject]
   );
@@ -598,8 +598,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
 
       // Update with server data
-      dispatch({ type: 'UPDATE_FIELD', payload: { objectId, field: data } });
-      return { data, error: null };
+      dispatch({ type: 'UPDATE_FIELD', payload: { objectId, field: data! } });
+      return { data: data!, error: null };
     },
     [state.currentProject]
   );
@@ -644,8 +644,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
 
       // Update with server data
-      dispatch({ type: 'UPDATE_FIELD', payload: { objectId, field: data } });
-      return { data, error: null };
+      dispatch({ type: 'UPDATE_FIELD', payload: { objectId, field: data! } });
+      return { data: data!, error: null };
     },
     [state.currentProject, state.dataModel.objects]
   );

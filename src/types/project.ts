@@ -115,36 +115,5 @@ export type ProjectAction =
   | { type: 'UPDATE_JOURNEYS'; payload: Journey[] }
   | { type: 'UPDATE_SAVED_AT'; payload: string };
 
-// Context Value
-export interface ProjectContextValue {
-  state: ProjectState;
-  dispatch: React.Dispatch<ProjectAction>;
-  // Tag operations
-  addTag: (tag: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Result<Tag>>;
-  updateTag: (id: string, updates: Partial<Tag>) => Promise<Result<Tag>>;
-  deleteTag: (id: string) => Promise<Result<void>>;
-  getTagDependencies: (tagId: string) => TagDependencies;
-  // Project operations
-  createProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Result<Project>>;
-  updateProject: (id: string, updates: Partial<Project>) => Promise<Result<Project>>;
-  deleteProject: (id: string) => Promise<Result<void>>;
-  // Data operations
-  fetchProjectData: (projectId: string) => Promise<Result<void>>;
-  saveProjectData: () => Promise<Result<void>>;
-}
-
-// Result type for async operations
-export interface Result<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  validationErrors?: ValidationError[];
-}
-
-// Tag Dependencies (re-exported for convenience)
-export interface TagDependencies {
-  requiredBy: Tag[];
-  requires: Tag[];
-  hasBlockers: boolean;
-  dependentCount: number;
-}
+// ProjectContextValue is defined and exported from ProjectContext-v2.tsx
+// to ensure types match the actual implementation

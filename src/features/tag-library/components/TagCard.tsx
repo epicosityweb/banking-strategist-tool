@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, Plus, Eye } from 'lucide-react';
-import { Tag } from '../../../types/tag';
+import { Tag, PropertyRuleCondition, ActivityRuleCondition, ScoreRuleCondition, RuleCondition } from '../../../types/tag';
 
 /**
  * TagCard Component
@@ -13,6 +13,19 @@ interface TagCardProps {
   tag: Tag;
   isAdded: boolean;
   onAdd: (tag: Tag) => void;
+}
+
+// Type guard functions for rule conditions
+function isPropertyCondition(condition: RuleCondition): condition is PropertyRuleCondition {
+  return 'object' in condition && 'field' in condition;
+}
+
+function isActivityCondition(condition: RuleCondition): condition is ActivityRuleCondition {
+  return 'eventType' in condition;
+}
+
+function isScoreCondition(condition: RuleCondition): condition is ScoreRuleCondition {
+  return 'scoreField' in condition;
 }
 
 export default function TagCard({ tag, isAdded, onAdd }: TagCardProps) {
@@ -121,27 +134,21 @@ export default function TagCard({ tag, isAdded, onAdd }: TagCardProps) {
               <ul className="list-disc list-inside pl-2 space-y-1">
                 {tag.qualificationRules.conditions.slice(0, 3).map((condition, idx) => (
                   <li key={idx} className="text-gray-500">
-                    {/* @ts-ignore - Union type narrowing issue with qualification rules */}
-                    {condition.object && condition.field && (
+                    {isPropertyCondition(condition) && (
                       <span>
-                        {/* @ts-ignore */}
                         {condition.object}.{condition.field} {condition.operator}{' '}
                         {typeof condition.value === 'object'
                           ? JSON.stringify(condition.value)
                           : condition.value}
                       </span>
                     )}
-                    {/* @ts-ignore */}
-                    {condition.eventType && (
+                    {isActivityCondition(condition) && (
                       <span>
-                        {/* @ts-ignore */}
                         {condition.eventType} {condition.occurrence}
                       </span>
                     )}
-                    {/* @ts-ignore */}
-                    {condition.scoreField && (
+                    {isScoreCondition(condition) && (
                       <span>
-                        {/* @ts-ignore */}
                         {condition.scoreField} {condition.operator} {condition.threshold}
                       </span>
                     )}
