@@ -1,0 +1,778 @@
+{
+  "tags": [
+    {
+      "id": "origin_indirect_auto",
+      "name": "Indirect_Auto",
+      "category": "origin",
+      "description": "Member started relationship with auto loan through dealer",
+      "icon": "car",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "first_product_type",
+            "operator": "equals",
+            "value": "Auto Loan"
+          },
+          {
+            "object": "Member",
+            "field": "acquisition_channel",
+            "operator": "equals",
+            "value": "Indirect Dealer"
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_branch_direct",
+      "name": "Branch_Direct",
+      "category": "origin",
+      "description": "Member walked into branch to open account",
+      "icon": "building",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "acquisition_channel",
+            "operator": "equals",
+            "value": "Branch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_digital_direct",
+      "name": "Digital_Direct",
+      "category": "origin",
+      "description": "Member applied online without branch visit",
+      "icon": "computer",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "acquisition_channel",
+            "operator": "equals",
+            "value": "Digital"
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_deposit_first",
+      "name": "Deposit_First",
+      "category": "origin",
+      "description": "Member started with checking/savings account",
+      "icon": "piggy-bank",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "first_product_type",
+            "operator": "in",
+            "value": ["Checking", "Savings"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_employer_group",
+      "name": "Employer_Group",
+      "category": "origin",
+      "description": "Member joined through workplace/payroll relationship",
+      "icon": "briefcase",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "acquisition_channel",
+            "operator": "equals",
+            "value": "Employer Group"
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_member_referral",
+      "name": "Member_Referral",
+      "category": "origin",
+      "description": "Member was referred by existing member",
+      "icon": "users",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "acquisition_channel",
+            "operator": "equals",
+            "value": "Member Referral"
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_loan_first",
+      "name": "Loan_First",
+      "category": "origin",
+      "description": "Member started with personal loan (not auto)",
+      "icon": "hand-coins",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "first_product_type",
+            "operator": "equals",
+            "value": "Personal Loan"
+          }
+        ]
+      }
+    },
+    {
+      "id": "origin_student_youth",
+      "name": "Student_Youth_Account",
+      "category": "origin",
+      "description": "Member opened account as minor or student",
+      "icon": "graduation-cap",
+      "color": "#1D4ED8",
+      "behavior": "set_once",
+      "isPermanent": true,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "OR",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "account_type_at_opening",
+            "operator": "equals",
+            "value": "Student"
+          },
+          {
+            "object": "Member",
+            "field": "account_type_at_opening",
+            "operator": "equals",
+            "value": "Youth"
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_digital_native",
+      "name": "Digital_Native",
+      "category": "behavior",
+      "description": "Member prefers mobile/online for all interactions",
+      "icon": "smartphone",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "mobile_app_login",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 10,
+            "timeframe": 30
+          },
+          {
+            "eventType": "branch_visit",
+            "occurrence": "count",
+            "operator": "less_than",
+            "value": 1,
+            "timeframe": 90
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_branch_preferred",
+      "name": "Branch_Preferred",
+      "category": "behavior",
+      "description": "Member has regular in-person visits, values face-to-face",
+      "icon": "building-2",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "branch_visit",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 3,
+            "timeframe": 90
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_actively_onboarding",
+      "name": "Actively_Onboarding",
+      "category": "behavior",
+      "description": "Member is currently completing activation milestones",
+      "icon": "rocket",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "onboarding_status",
+            "operator": "equals",
+            "value": "In Progress"
+          },
+          {
+            "object": "Member",
+            "field": "days_since_join",
+            "operator": "less_than",
+            "value": 30
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_high_engagement",
+      "name": "High_Engagement",
+      "category": "behavior",
+      "description": "Member has frequent transactions and interactions",
+      "icon": "trending-up",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "transaction",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 20,
+            "timeframe": 30
+          },
+          {
+            "eventType": "mobile_app_login",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 15,
+            "timeframe": 30
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_direct_deposit_active",
+      "name": "Direct_Deposit_Active",
+      "category": "behavior",
+      "description": "Member has paycheck routed to account (stickiness indicator)",
+      "icon": "dollar-sign",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "direct_deposit",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 2,
+            "timeframe": 90
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_multi_product_holder",
+      "name": "Multi_Product_Holder",
+      "category": "behavior",
+      "description": "Member has 3+ active products (high relationship depth)",
+      "icon": "layers",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "active_product_count",
+            "operator": "greater_than_or_equal",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_always_on_time",
+      "name": "Always_On_Time",
+      "category": "behavior",
+      "description": "Member has perfect payment history on all loans",
+      "icon": "check-circle",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "delinquency_count",
+            "operator": "equals",
+            "value": 0
+          },
+          {
+            "object": "Member",
+            "field": "has_active_loan",
+            "operator": "equals",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_bill_pay_user",
+      "name": "Bill_Pay_User",
+      "category": "behavior",
+      "description": "Member uses active online bill payment",
+      "icon": "file-text",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "bill_payment",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 3,
+            "timeframe": 30
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_mobile_deposit_power_user",
+      "name": "Mobile_Deposit_Power_User",
+      "category": "behavior",
+      "description": "Member makes frequent mobile check deposits",
+      "icon": "camera",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "mobile_deposit",
+            "occurrence": "count",
+            "operator": "greater_than",
+            "value": 5,
+            "timeframe": 30
+          }
+        ]
+      }
+    },
+    {
+      "id": "behavior_bill_pay_inactive",
+      "name": "Bill_Pay_Inactive",
+      "category": "behavior",
+      "description": "Member has not used bill pay in 90+ days",
+      "icon": "pause-circle",
+      "color": "#15803D",
+      "behavior": "dynamic",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "activity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "eventType": "bill_payment",
+            "occurrence": "count",
+            "operator": "equals",
+            "value": 0,
+            "timeframe": 90
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_credit_card_prime",
+      "name": "Credit_Card_Prime",
+      "category": "opportunity",
+      "description": "Member is qualified for credit card based on behavior",
+      "icon": "credit-card",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "score",
+        "logic": "AND",
+        "conditions": [
+          {
+            "scoreField": "credit_score",
+            "operator": "greater_than_or_equal",
+            "threshold": 700,
+            "hysteresis": {
+              "addThreshold": 700,
+              "removeThreshold": 680
+            }
+          },
+          {
+            "object": "Member",
+            "field": "has_credit_card",
+            "operator": "equals",
+            "value": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_mortgage_ready",
+      "name": "Mortgage_Ready",
+      "category": "opportunity",
+      "description": "Member is showing home-buying indicators",
+      "icon": "home",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "credit_score",
+            "operator": "greater_than_or_equal",
+            "value": 650
+          },
+          {
+            "object": "Member",
+            "field": "has_mortgage",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "object": "Member",
+            "field": "average_monthly_balance",
+            "operator": "greater_than",
+            "value": 5000
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_auto_loan_ready",
+      "name": "Auto_Loan_Ready",
+      "category": "opportunity",
+      "description": "Member has no auto loan but showing purchase patterns",
+      "icon": "car",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "has_auto_loan",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "object": "Member",
+            "field": "credit_score",
+            "operator": "greater_than_or_equal",
+            "value": 600
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_personal_loan_qualified",
+      "name": "Personal_Loan_Qualified",
+      "category": "opportunity",
+      "description": "Member's credit profile supports unsecured lending",
+      "icon": "coins",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "credit_score",
+            "operator": "greater_than_or_equal",
+            "value": 650
+          },
+          {
+            "object": "Member",
+            "field": "has_personal_loan",
+            "operator": "equals",
+            "value": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_heloc_eligible",
+      "name": "HELOC_Eligible",
+      "category": "opportunity",
+      "description": "Member is homeowner with equity, no existing HELOC",
+      "icon": "key",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "homeowner_status",
+            "operator": "equals",
+            "value": "Owner"
+          },
+          {
+            "object": "Member",
+            "field": "has_heloc",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "object": "Member",
+            "field": "estimated_home_equity",
+            "operator": "greater_than",
+            "value": 50000
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_certificate_maturity",
+      "name": "Certificate_Maturity_Approaching",
+      "category": "opportunity",
+      "description": "Member's CD is maturing in 30-60 days (retention risk)",
+      "icon": "calendar",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Certificate",
+            "field": "days_until_maturity",
+            "operator": "between",
+            "value": [30, 60]
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_overdraft_protection_need",
+      "name": "Overdraft_Protection_Need",
+      "category": "opportunity",
+      "description": "Member has 2+ NSF fees in 90 days, no protection line",
+      "icon": "shield-alert",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "nsf_fee_count_90days",
+            "operator": "greater_than_or_equal",
+            "value": 2
+          },
+          {
+            "object": "Member",
+            "field": "has_overdraft_protection",
+            "operator": "equals",
+            "value": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_premium_checking_upgrade",
+      "name": "Premium_Checking_Upgrade",
+      "category": "opportunity",
+      "description": "Member meets balance/DD requirements for premium tier",
+      "icon": "star",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "average_monthly_balance",
+            "operator": "greater_than_or_equal",
+            "value": 5000
+          },
+          {
+            "object": "Member",
+            "field": "has_direct_deposit",
+            "operator": "equals",
+            "value": true
+          },
+          {
+            "object": "Member",
+            "field": "checking_account_type",
+            "operator": "not_equals",
+            "value": "Premium"
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_youth_to_adult_transition",
+      "name": "Youth_To_Adult_Transition",
+      "category": "opportunity",
+      "description": "Student account holder approaching age 25",
+      "icon": "user-check",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "age",
+            "operator": "between",
+            "value": [23, 26]
+          },
+          {
+            "object": "Member",
+            "field": "account_type",
+            "operator": "in",
+            "value": ["Student", "Youth"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_savings_growth",
+      "name": "Savings_Growth_Opportunity",
+      "category": "opportunity",
+      "description": "Member has growing balance, ready for higher-yield products",
+      "icon": "trending-up",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "savings_balance",
+            "operator": "greater_than",
+            "value": 10000
+          },
+          {
+            "object": "Member",
+            "field": "balance_growth_rate_90days",
+            "operator": "greater_than",
+            "value": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "opportunity_investment_ready",
+      "name": "Investment_Ready",
+      "category": "opportunity",
+      "description": "Member has high liquidity, ready for investment products",
+      "icon": "bar-chart",
+      "color": "#7C3AED",
+      "behavior": "evolving",
+      "isPermanent": false,
+      "qualificationRules": {
+        "ruleType": "property",
+        "logic": "AND",
+        "conditions": [
+          {
+            "object": "Member",
+            "field": "total_liquid_assets",
+            "operator": "greater_than",
+            "value": 25000
+          },
+          {
+            "object": "Member",
+            "field": "has_investment_account",
+            "operator": "equals",
+            "value": false
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "totalTags": 30,
+    "categories": {
+      "origin": 8,
+      "behavior": 10,
+      "opportunity": 12
+    },
+    "lastUpdated": "2025-10-14"
+  }
+}

@@ -3,6 +3,15 @@ import {
   fieldSchema,
   associationSchema,
 } from '../schemas/objectSchema';
+import {
+  tagSchema,
+  tagLibrarySchema,
+  validateTagName,
+  validateTagColor,
+  validateQualificationRules,
+  validateTagDependencies,
+  analyzeRuleComplexity,
+} from '../schemas/tagSchema';
 
 /**
  * Validation Service
@@ -304,6 +313,189 @@ class ValidationService {
     return !existingObjects.some(
       (obj) => obj.id !== objectId && obj.name.toLowerCase() === normalizedName
     );
+  }
+
+  // ========== Tag Validation Methods ==========
+
+  /**
+   * Validate a tag
+   * @param {Object} tagData - Tag data to validate
+   * @param {Object} context - Validation context (existingTags, availableObjects)
+   * @returns {{valid: boolean, data: Object|null, errors: Array}}
+   */
+  validateTag(tagData, context = {}) {
+    try {
+      // First validate the tag structure
+      const validated = tagSchema.parse(tagData);
+
+      // Additional business rules
+      const errors = [];
+
+      // Check for duplicate tag names
+      if (context.existingTags) {
+        const nameErrors = validateTagName(
+          validated.name,
+          context.existingTags,
+          validated.id
+        );
+        if (nameErrors.length > 0) {
+          errors.push(...nameErrors.map((msg) => ({ field: 'name', message: msg })));
+        }
+      }
+
+      // Validate qualification rules
+      if (validated.qualificationRules && context.availableObjects) {
+        const ruleErrors = validateQualificationRules(
+          validated.qualificationRules,
+          context.availableObjects
+        );
+        if (ruleErrors.length > 0) {
+          errors.push(
+            ...ruleErrors.map((msg) => ({ field: 'qualificationRules', message: msg }))
+          );
+        }
+      }
+
+      // Validate tag dependencies
+      if (validated.dependencies && context.existingTags) {
+        const depErrors = validateTagDependencies(
+          validated.id,
+          validated.dependencies,
+          context.existingTags
+        );
+        if (depErrors.length > 0) {
+          errors.push(
+            ...depErrors.map((msg) => ({ field: 'dependencies', message: msg }))
+          );
+        }
+      }
+
+      if (errors.length > 0) {
+        return {
+          valid: false,
+          data: null,
+          errors,
+        };
+      }
+
+      return {
+        valid: true,
+        data: validated,
+        errors: [],
+      };
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        return {
+          valid: false,
+          data: null,
+          errors: this._formatZodErrors(error),
+        };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validate a tag library
+   * @param {Object} libraryData - Tag library data to validate
+   * @returns {{valid: boolean, data: Object|null, errors: Array}}
+   */
+  validateTagLibrary(libraryData) {
+    try {
+      const validated = tagLibrarySchema.parse(libraryData);
+      return {
+        valid: true,
+        data: validated,
+        errors: [],
+      };
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        return {
+          valid: false,
+          data: null,
+          errors: this._formatZodErrors(error),
+        };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validate all tags in a project
+   * @param {Array} tags - Tags to validate
+   * @param {Array} availableObjects - Available custom objects for validation
+   * @returns {{valid: boolean, data: Array|null, errors: Array}}
+   */
+  validateAllTags(tags, availableObjects = []) {
+    const errors = [];
+    const validatedTags = [];
+
+    tags.forEach((tag, index) => {
+      const result = this.validateTag(tag, {
+        existingTags: tags,
+        availableObjects,
+      });
+
+      if (!result.valid) {
+        errors.push({
+          path: `tags[${index}]`,
+          tagName: tag.name || 'Unknown',
+          errors: result.errors,
+        });
+      } else {
+        validatedTags.push(result.data);
+      }
+    });
+
+    if (errors.length > 0) {
+      return {
+        valid: false,
+        data: null,
+        errors,
+      };
+    }
+
+    return {
+      valid: true,
+      data: validatedTags,
+      errors: [],
+    };
+  }
+
+  /**
+   * Analyze tag qualification rule complexity
+   * @param {Object} qualificationRules - Rules to analyze
+   * @returns {Object} Complexity analysis
+   */
+  analyzeTagComplexity(qualificationRules) {
+    return analyzeRuleComplexity(qualificationRules);
+  }
+
+  /**
+   * Check if tag name is unique within a project
+   * @param {string} tagName - Tag name to check
+   * @param {string} tagId - Current tag ID (for updates)
+   * @param {Array} existingTags - Existing tags
+   * @returns {boolean}
+   */
+  isTagNameUnique(tagName, tagId, existingTags = []) {
+    const normalizedName = tagName.toLowerCase();
+    return !existingTags.some(
+      (tag) => tag.id !== tagId && tag.name.toLowerCase() === normalizedName
+    );
+  }
+
+  /**
+   * Validate tag color format
+   * @param {string} color - Hex color code to validate
+   * @returns {{valid: boolean, errors: Array}}
+   */
+  validateColor(color) {
+    const errors = validateTagColor(color);
+    return {
+      valid: errors.length === 0,
+      errors: errors.map((msg) => ({ field: 'color', message: msg })),
+    };
   }
 }
 
