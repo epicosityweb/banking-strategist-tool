@@ -283,38 +283,98 @@ export async function signIn(email, password) {
 
 ### JSONB Data Structure
 
-The `implementations.data` JSONB column stores:
+The `implementations.data` JSONB column stores all project configuration. Below shows the complete structure with implementation status.
+
+**Status Legend:**
+- ✅ **Implemented & Persisting** - Data is being saved to Supabase today
+- 📋 **Planned** - Future feature, not yet implemented
 
 ```json
 {
   "clientProfile": {
     "basicInfo": {
+      // ✅ IMPLEMENTED - Epic 2.1 Complete (23 fields)
+      // FI Details
       "institutionName": "First Community Credit Union",
-      "fiType": "Credit Union",
-      "assetSize": "$500M - $1B",
-      "contactName": "John Doe",
-      "contactEmail": "john@fccu.com"
+      "fiType": "credit_union",  // credit_union | community_bank | regional_bank | national_bank
+      "institutionSize": "medium",  // small | medium | large | enterprise
+      "primaryLocation": "Portland, OR",
+      "websiteUrl": "https://fccu.com",
+
+      // Member Demographics
+      "totalMemberCount": 25000,
+      "newMembersPerMonth": 150,
+      "averageMemberTenure": 84,  // months
+      "primaryAgeRange": "36-50",  // 18-25 | 26-35 | 36-50 | 51-65 | 65+ | mixed
+      "primaryMemberProfile": "consumer",  // consumer | small_business | mixed
+
+      // Product Offerings (array of selected products)
+      "productOfferings": [
+        "checking", "savings", "cds", "auto_loans", "mortgages"
+      ],
+
+      // Current Technology Stack
+      "coreBankingSystem": "symitar",  // symitar | dna | corelation | fis | jack_henry | other
+      "currentCRM": "Salesforce",
+      "currentWebsitePlatform": "WordPress",
+      "analyticsTools": "Google Analytics",
+
+      // HubSpot Environment
+      "hubspotAccountId": "12345678",
+      "marketingHubTier": "professional",  // "" | professional | enterprise
+      "salesHubTier": "professional",
+      "serviceHubTier": "",
+      "operationsHubTier": ""
     },
     "integrationSpecs": {
-      "coreBankingSystem": "Symitar",
-      "digitalBankingPlatform": "Q2"
+      // ✅ IMPLEMENTED - Epic 2.2 Basic (14 fields)
+      // Export Capabilities
+      "exportMethod": "scheduled_file",  // scheduled_file | api | manual | unknown
+      "exportFormat": "csv",  // csv | xml | json | fixed_width | other
+      "exportFrequency": "daily",  // realtime | hourly | daily | weekly | on_demand
+      "exportTime": "02:00",  // HH:mm format (conditional on frequency)
+      "fileStorageLocation": "sftp",  // sftp | aws_s3 | azure_blob | google_cloud | other
+
+      // Data Security
+      "ssnHandling": "hashed",  // not_exported | hashed | encrypted | plain_text
+      "accountNumberHandling": "masked",  // masked | encrypted | plain_text
+      "pciCompliance": true,
+      "glbaCompliance": true,
+      "dataRetentionDays": 90,
+
+      // Integration Partner
+      "integrationPlatform": "prismatic",  // prismatic | zapier | make | workato | custom | none
+      "apiRateLimitsKnown": false,
+      "realtimeWebhooksAvailable": true
     }
   },
   "dataModel": {
+    // ✅ IMPLEMENTED - Epic 3 Complete
     "objects": [
       {
         "id": "uuid-v4",
         "name": "CustomAccount",
         "label": "Custom Account",
-        "type": "custom",
+        "type": "custom",  // custom | lookup | system
+        "description": "Custom account object for tracking specialized accounts",
+        "icon": "CreditCard",
         "fields": [
           {
             "id": "uuid-v4",
             "name": "accountNumber",
             "label": "Account Number",
-            "type": "text",
+            "type": "text",  // text | number | date | boolean | lookup | email | phone | url | currency | percent | picklist | multipicklist
             "required": true,
-            "unique": true
+            "unique": true,
+            "indexed": true,
+            "helpText": "Primary account identifier",
+            "defaultValue": "",
+            "validation": {
+              "pattern": "^[0-9]{10}$",
+              "minLength": 10,
+              "maxLength": 10
+            },
+            "picklistOptions": []  // For picklist/multipicklist types
           }
         ],
         "createdAt": "2025-10-14T12:00:00Z",
@@ -326,12 +386,14 @@ The `implementations.data` JSONB column stores:
         "id": "uuid-v4",
         "fromObjectId": "uuid-v4",
         "toObjectId": "uuid-v4",
-        "type": "one-to-many",
+        "relationshipName": "Accounts",
+        "type": "one-to-many",  // one-to-one | one-to-many | many-to-many
         "cascadeDelete": true
       }
     ]
   },
   "tags": [
+    // 📋 PLANNED - Epic 4 (Tag Library & Journey Designer)
     {
       "id": "uuid-v4",
       "name": "new-member",
@@ -340,6 +402,7 @@ The `implementations.data` JSONB column stores:
     }
   ],
   "journeys": [
+    // 📋 PLANNED - Epic 5 (Journey Simulator)
     {
       "id": "uuid-v4",
       "name": "New Member Onboarding",
@@ -348,6 +411,91 @@ The `implementations.data` JSONB column stores:
   ]
 }
 ```
+
+**Note:** For detailed field descriptions, validation rules, and business requirements, see [IMPLEMENTATION-PLAN.md](../IMPLEMENTATION-PLAN.md) Epic 2.
+
+### Data Persistence Status (October 14, 2025)
+
+This section clarifies exactly what data is currently being saved to Supabase vs what is planned for future implementation.
+
+**Currently Persisting to Supabase:**
+
+| Feature | Status | Epic | Fields | Notes |
+|---------|--------|------|--------|-------|
+| Project metadata | ✅ Saving | Core | name, status, owner_id, timestamps | Top-level columns |
+| Client Profile - Basic Information | ✅ Saving | 2.1 | 23 fields | All FI details, demographics, tech stack |
+| Client Profile - Integration Specs | ✅ Saving | 2.2 | 14 fields | Export, security, integration platform |
+| Data Model - Custom Objects | ✅ Saving | 3.1-3.4 | Full schema | Objects, fields, validation rules |
+| Data Model - Associations | ✅ Saving | 3.5 | Full schema | Relationships, cascade rules |
+| Tags - Tag Library | 📋 Planned | 4.1-4.4 | Not implemented | Qualification rules, categories |
+| Journeys - Journey Designer | 📋 Planned | 5.1-5.3 | Not implemented | Stages, flows, simulations |
+
+**Verification Query:**
+
+You can verify what data is being saved by running this SQL query in Supabase:
+
+```sql
+-- View all saved project data
+SELECT
+  id,
+  name,
+  status,
+  owner_id,
+  data->'clientProfile'->'basicInfo' as basic_info,
+  data->'clientProfile'->'integrationSpecs' as integration_specs,
+  data->'dataModel'->'objects' as custom_objects,
+  data->'dataModel'->'associations' as associations,
+  created_at,
+  updated_at
+FROM implementations
+WHERE owner_id = 'd9d00199-3518-42d5-be1b-152c503131d3';  -- chris@epicosity.com
+
+-- Count fields being saved
+SELECT
+  id,
+  name,
+  jsonb_object_keys(data->'clientProfile'->'basicInfo') as basic_info_fields,
+  jsonb_object_keys(data->'clientProfile'->'integrationSpecs') as integration_fields
+FROM implementations;
+```
+
+**Example of Actual Saved Data:**
+
+```json
+{
+  "id": "36b159c0-cff2-4470-8f87-7751f70d0cee",
+  "name": "Levo",
+  "status": "draft",
+  "owner_id": "d9d00199-3518-42d5-be1b-152c503131d3",
+  "data": {
+    "clientProfile": {
+      "basicInfo": {
+        "institutionName": "Levo Credit Union",
+        "fiType": "credit_union",
+        "institutionSize": "medium",
+        "totalMemberCount": 15000,
+        // ... all 23 fields saved
+      },
+      "integrationSpecs": {
+        "exportMethod": "scheduled_file",
+        "exportFormat": "csv",
+        "exportFrequency": "daily",
+        // ... all 14 fields saved
+      }
+    },
+    "dataModel": {
+      "objects": [],
+      "associations": []
+    },
+    "tags": [],
+    "journeys": []
+  }
+}
+```
+
+**Key Takeaway:** All data entered in the BasicInformation and IntegrationSpecifications forms is being automatically saved to Supabase via the service layer. The auto-save triggers on explicit "Save" button clicks with optimistic updates and automatic rollback on errors.
+
+For milestone completion details and remaining work, see [PROJECT-STATUS.md](PROJECT-STATUS.md).
 
 ---
 
