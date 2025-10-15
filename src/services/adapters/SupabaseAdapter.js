@@ -1,6 +1,7 @@
 import IStorageAdapter from './IStorageAdapter';
 import { generateId } from '../../utils/idGenerator';
 import { supabase } from '../../lib/supabase';
+import { projectSchema, customObjectSchema, customFieldSchema } from '../ValidationService';
 
 /**
  * Supabase Adapter
@@ -159,6 +160,15 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async createProject(projectData) {
     try {
+      // Server-side validation
+      const validation = projectSchema.safeParse(projectData);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
       const { userId, error: authError } = await this._getCurrentUserId();
       if (authError) return { data: null, error: authError };
 
@@ -209,6 +219,15 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async updateProject(projectId, updates) {
     try {
+      // Server-side validation for updates (partial validation)
+      const validation = projectSchema.partial().safeParse(updates);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
       const { userId, error: authError } = await this._getCurrentUserId();
       if (authError) return { data: null, error: authError };
 
@@ -290,6 +309,15 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async addCustomObject(projectId, objectData) {
     try {
+      // Server-side validation
+      const validation = customObjectSchema.safeParse(objectData);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -393,6 +421,15 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async addField(projectId, objectId, fieldData) {
     try {
+      // Server-side validation
+      const validation = customFieldSchema.safeParse(fieldData);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 

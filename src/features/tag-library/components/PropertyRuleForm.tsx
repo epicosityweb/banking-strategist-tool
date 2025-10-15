@@ -11,7 +11,7 @@
  * and TypeScript safety throughout.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PropertyRuleCondition } from '../../../types/tag';
 import type { CustomObject } from '../../../types/project';
 
@@ -100,6 +100,9 @@ export default function PropertyRuleForm({
   );
   const [value, setValue] = useState<unknown>(condition?.value ?? '');
 
+  // Track mounted state to prevent updates after unmount
+  const isMountedRef = useRef<boolean>(true);
+
   // Find selected object details
   const currentObject = objects.find(obj => obj.name === selectedObject);
   const currentField = currentObject?.fields.find(field => field.name === selectedField);
@@ -111,7 +114,7 @@ export default function PropertyRuleForm({
 
   // Update parent when any field changes
   useEffect(() => {
-    if (selectedObject && selectedField && selectedOperator) {
+    if (isMountedRef.current && selectedObject && selectedField && selectedOperator) {
       const newCondition: PropertyRuleCondition = {
         object: selectedObject,
         field: selectedField,
@@ -120,6 +123,11 @@ export default function PropertyRuleForm({
       };
       onChange(newCondition);
     }
+
+    // Cleanup function to mark component as unmounted
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [selectedObject, selectedField, selectedOperator, value, onChange]);
 
   // Determine if operator needs a value input

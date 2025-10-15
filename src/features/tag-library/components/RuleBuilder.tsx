@@ -11,6 +11,7 @@
  */
 
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import type {
   QualificationRules,
   RuleCondition,
@@ -77,15 +78,24 @@ export default function RuleBuilder({ rules, onChange, dataModel, errors }: Rule
   };
 
   // Render a human-readable summary of a condition
+  // Uses DOMPurify to sanitize user input and prevent XSS attacks
   const renderConditionSummary = (condition: RuleCondition, index: number): string => {
     // Type guard for property conditions
     if ('object' in condition && 'field' in condition) {
       const propCondition = condition as PropertyRuleCondition;
-      let summary = `${propCondition.object}.${propCondition.field} ${propCondition.operator}`;
+
+      // Sanitize all string values to prevent XSS
+      const safeObject = DOMPurify.sanitize(propCondition.object, { ALLOWED_TAGS: [] });
+      const safeField = DOMPurify.sanitize(propCondition.field, { ALLOWED_TAGS: [] });
+      const safeOperator = DOMPurify.sanitize(propCondition.operator, { ALLOWED_TAGS: [] });
+
+      let summary = `${safeObject}.${safeField} ${safeOperator}`;
+
       if (propCondition.value !== undefined) {
-        summary += ` ${Array.isArray(propCondition.value)
-          ? propCondition.value.join(', ')
-          : String(propCondition.value)}`;
+        const valueStr = Array.isArray(propCondition.value)
+          ? propCondition.value.map(v => DOMPurify.sanitize(String(v), { ALLOWED_TAGS: [] })).join(', ')
+          : DOMPurify.sanitize(String(propCondition.value), { ALLOWED_TAGS: [] });
+        summary += ` ${valueStr}`;
       }
       return summary;
     }
