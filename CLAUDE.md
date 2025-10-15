@@ -6,6 +6,184 @@
 
 ---
 
+## 🤖 Instructions for AI Agents
+
+**IMPORTANT:** This project follows the **Compounding Engineering** workflow. See [../docs/compounding-engineering-workflow.md](../docs/compounding-engineering-workflow.md) for complete details.
+
+### Your Role as an Agent
+
+When working on this project, you MUST:
+
+1. **Always check current workflow phase** by reading [PROJECT-STATUS.md](PROJECT-STATUS.md)
+2. **Inform the user** where they are in the workflow cycle
+3. **Recommend next steps** based on the current phase
+4. **Follow the workflow cycle**: Plan → Delegate → Assess → Codify
+
+### Workflow Cycle Reminders
+
+After completing any significant work, remind the user:
+
+**After Planning (GitHub issue created):**
+```
+✅ Planning phase complete for [feature name]
+
+Current workflow phase: PLAN → **DELEGATE**
+
+Recommended next step:
+/workflows/work https://github.com/org/repo/issues/[number]
+
+This will create a worktree, implement the feature systematically,
+and create a PR when complete.
+```
+
+**After Implementation (PR created):**
+```
+✅ Implementation complete for [feature name]
+
+Current workflow phase: DELEGATE → **ASSESS**
+
+Recommended next step:
+/workflows/review [PR-number]
+
+This will run 10+ specialized agents to review code quality,
+security, performance, and architecture.
+```
+
+**After Review (findings generated):**
+```
+✅ Code review complete - found [N] findings
+
+Current workflow phase: ASSESS → **CODIFY**
+
+Recommended next step:
+/workflows/triage
+
+This will present each finding for you to accept or skip.
+Accepted findings become tracked todos for resolution.
+```
+
+**After Triage (todos created):**
+```
+✅ Triage complete - created [N] todos
+
+Current workflow phase: CODIFY → **COMPLETE**
+
+Recommended next step:
+/workflows/resolve_todo_parallel
+
+This will analyze dependencies and resolve todos in parallel
+where possible, then sequential for dependent items.
+```
+
+**After Resolution (all todos complete):**
+```
+✅ All todos resolved
+
+Current workflow phase: COMPLETE → **PLAN** (next feature)
+
+This feature is ready to merge. The compounding effect is working:
+- Patterns documented
+- Knowledge captured
+- Agents improved
+- Next similar feature will be faster
+
+Ready to start the next feature? Check PROJECT-STATUS.md
+for the next milestone.
+```
+
+### Status Check Template
+
+At the start of EVERY conversation, provide this status update:
+
+```
+📊 Project Status Check
+
+Epic: [Current Epic Name]
+Progress: [X]% complete
+Current Phase: [Phase Name]
+
+Completed:
+- ✅ [List completed milestones]
+
+In Progress:
+- 🏗️ [Current work]
+
+Next Up:
+- 📋 [Next milestone]
+
+Workflow Phase: [PLAN/DELEGATE/ASSESS/CODIFY]
+
+See PROJECT-STATUS.md for full details.
+```
+
+### Following the Workflow
+
+**For Planning Tasks:**
+- Read GitHub issue #3 (Epic 4) and PROJECT-STATUS.md
+- Check what phases are complete vs. pending
+- Recommend using `/workflows/plan` for new features
+- Create detailed issues with acceptance criteria
+
+**For Implementation Tasks:**
+- Always use worktrees (never work in main directory for features)
+- Create feature branch: `git worktree add -b feature-name .worktrees/feature-name`
+- Use TodoWrite to track implementation progress
+- Run tests after each significant change
+- Commit frequently with clear messages
+
+**For Review Tasks:**
+- Use `/workflows/review [PR-number]` for comprehensive review
+- Review runs in isolated worktree automatically
+- Expect 10+ agents analyzing different aspects
+- Findings categorized by severity (P1/P2/P3)
+
+**For Codification Tasks:**
+- Use `/workflows/triage` to convert findings to todos
+- Each todo gets a file: `042-pending-p1-description.md`
+- Use `/workflows/resolve_todo_parallel` to fix issues efficiently
+- Update learnings in this CLAUDE.md file
+
+### TypeScript Standards
+
+This project uses TypeScript for all new components:
+
+- ✅ Always use `.tsx` for React components
+- ✅ Define proper interfaces for all props
+- ✅ Use type guards instead of `@ts-ignore`
+- ✅ Handle nullable types with proper checks or `!` assertions
+- ✅ Export types from implementation files when appropriate
+- ❌ Never suppress TypeScript errors without good reason
+- ❌ Don't use `any` unless absolutely necessary
+
+See [CODE-REVIEW-TYPESCRIPT-MIGRATION.md](../CODE-REVIEW-TYPESCRIPT-MIGRATION.md) for patterns.
+
+### Quality Standards
+
+Before considering any work "complete":
+
+- [ ] TypeScript compilation: 0 errors (`npx tsc --noEmit`)
+- [ ] Tests pass (`npm test`)
+- [ ] Linter passes (`npm run lint`)
+- [ ] All acceptance criteria met
+- [ ] Documentation updated
+- [ ] Learnings captured in CLAUDE.md
+
+### Compounding Principle
+
+Remember: **Every unit of engineering work should make subsequent units easier.**
+
+This means:
+- Document patterns as you discover them
+- Update schemas when adding validation
+- Improve error messages when debugging
+- Create reusable components
+- Capture learnings in Key Learnings section
+- Update reviewer agents with new patterns
+
+The 4th similar feature should take 25% of the time of the 1st.
+
+---
+
 ## Quick Start
 
 ### Development Server
@@ -33,19 +211,41 @@ VITE_SUPABASE_ANON_KEY=[your-anon-key]
 
 📊 **For detailed milestone tracking, see:** [PROJECT-STATUS.md](PROJECT-STATUS.md)
 
+### Epic Progress
+
+**Epic 4: Tag Library & Journey Designer** - 🏗️ IN PROGRESS (45% Complete)
+- ✅ Phase 1: Foundation & Data Model (18 hours)
+- ✅ Phase 2: Tag Library Browser (22 hours)
+- ✅ Phase 3: Tag Management (30 hours)
+- ✅ TypeScript Migration (complete, 0 errors)
+- 📋 Phase 4: Property Rule Builder (40 hours) - **READY TO START**
+- 📋 Phase 5: Activity, Association & Score Rules (39 hours)
+- 📋 Phase 6: Rule Testing & Visualization (30 hours)
+- 📋 Phase 7: Journey Designer (25 hours)
+
+**Workflow Phase:** ASSESS → **CODIFY** (TypeScript migration reviewed and merged)
+
 **What's Complete:**
-- ✅ Core React application (9 components)
+- ✅ Core React application (9+ components)
 - ✅ Service layer architecture (adapter pattern)
 - ✅ Supabase authentication system
 - ✅ Single-tenant database schema
 - ✅ All CRUD operations working
 - ✅ Auto-save functionality (30-second debounce)
+- ✅ Tag library with 30 pre-built banking tags
+- ✅ Tag CRUD with validation and dependency checking
+- ✅ TypeScript migration (5 components, 940-line context)
+- ✅ Code review system (B+ rating, 85/100)
 
 **Currently Working On:**
-- Nothing - awaiting next feature epic
+- Ready to begin Phase 4: Property Rule Builder
 
 **Next Milestone:**
-- Epic 4: Tag Library & Journey Designer
+- Phase 4: Property Rule Builder (visual rule builder with operator selection)
+
+**Recommended Next Step:**
+Start Phase 4 implementation. The planning is complete in GitHub Issue #3,
+so you can use `/workflows/work` to begin systematic implementation.
 
 ---
 
