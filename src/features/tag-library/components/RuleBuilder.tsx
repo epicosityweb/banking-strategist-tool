@@ -16,10 +16,13 @@ import type {
   QualificationRules,
   RuleCondition,
   PropertyRuleCondition,
+  ActivityRuleCondition,
 } from '../../../types/tag';
 import type { DataModel } from '../../../types/project';
 import PropertyRuleForm from './PropertyRuleForm';
+import ActivityRuleForm from './ActivityRuleForm';
 import { generateId } from '../../../utils/idGenerator';
+import { getEventDisplayName } from '../../../data/hubspotEventTypes';
 
 /**
  * Type guard for PropertyRuleCondition
@@ -33,6 +36,19 @@ function isPropertyRuleCondition(condition: RuleCondition): condition is Propert
     typeof condition.field === 'string' &&
     'operator' in condition &&
     typeof condition.operator === 'string'
+  );
+}
+
+/**
+ * Type guard for ActivityRuleCondition
+ * Validates all required fields exist and have correct types
+ */
+function isActivityRuleCondition(condition: RuleCondition): condition is ActivityRuleCondition {
+  return (
+    'eventType' in condition &&
+    typeof condition.eventType === 'string' &&
+    'occurrence' in condition &&
+    typeof condition.occurrence === 'string'
   );
 }
 
@@ -131,6 +147,31 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
             : DOMPurify.sanitize(String(condition.value), { ALLOWED_TAGS: [] });
           summary += ` ${valueStr}`;
         }
+        return summary;
+      }
+
+      if (isActivityRuleCondition(condition)) {
+        // Sanitize event type
+        const safeEventType = DOMPurify.sanitize(condition.eventType, { ALLOWED_TAGS: [] });
+        const eventName = getEventDisplayName(safeEventType);
+
+        let summary = `Event: ${eventName}`;
+
+        // Add occurrence info
+        if (condition.occurrence === 'has_occurred') {
+          summary += ' has occurred';
+        } else if (condition.occurrence === 'has_not_occurred') {
+          summary += ' has NOT occurred';
+        } else if (condition.occurrence === 'count' && condition.operator && condition.value !== undefined) {
+          const safeOperator = DOMPurify.sanitize(condition.operator, { ALLOWED_TAGS: [] });
+          summary += ` occurred ${safeOperator} ${condition.value} times`;
+        }
+
+        // Add timeframe if present
+        if (condition.timeframe) {
+          summary += ` in last ${condition.timeframe} days`;
+        }
+
         return summary;
       }
 
@@ -258,11 +299,9 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
         )}
 
         {activeTab === 'activity' && (
-          <div className="text-center text-gray-500 py-12">
-            <p className="text-lg font-medium mb-2">Activity Rule Builder</p>
-            <p className="text-sm">Define conditions based on HubSpot events and user activities</p>
-            <p className="text-xs text-gray-400 mt-4">Coming in Phase 5</p>
-          </div>
+          <ActivityRuleForm
+            onChange={handleAddCondition}
+          />
         )}
 
         {activeTab === 'association' && (
