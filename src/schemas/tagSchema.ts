@@ -12,6 +12,7 @@ import type { Tag, CustomObject, CustomField, QualificationRules } from '../type
 
 // Property Rule Condition
 export const propertyRuleConditionSchema = z.object({
+  id: z.string().optional(), // Unique ID for React key prop
   object: z.string().min(1, 'Object name is required'),
   field: z.string().min(1, 'Field name is required'),
   operator: z.enum([

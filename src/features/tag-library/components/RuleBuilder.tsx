@@ -10,7 +10,7 @@
  * Follows compounding engineering principles with TypeScript safety and reusable patterns.
  */
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import type {
   QualificationRules,
@@ -19,6 +19,7 @@ import type {
 } from '../../../types/tag';
 import type { DataModel } from '../../../types/project';
 import PropertyRuleForm from './PropertyRuleForm';
+import { generateId } from '../../../utils/idGenerator';
 
 /**
  * Type guard for PropertyRuleCondition
@@ -84,48 +85,59 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
     });
   }, [rules, onChange]);
 
-  // Handle adding a new condition
+  // Handle adding a new condition with unique ID
   const handleAddCondition = useCallback((condition: PropertyRuleCondition): void => {
-    const newConditions = [...rules.conditions, condition];
+    const conditionWithId = {
+      ...condition,
+      id: condition.id || generateId(), // Ensure every condition has a unique ID
+    };
+    const newConditions = [...rules.conditions, conditionWithId];
     onChange({
       ...rules,
       conditions: newConditions,
     });
   }, [rules, onChange]);
 
-  // Handle deleting a condition
-  const handleDeleteCondition = useCallback((index: number): void => {
-    const newConditions = rules.conditions.filter((_, i) => i !== index);
-    onChange({
-      ...rules,
-      conditions: newConditions,
-    });
-  }, [rules, onChange]);
-
-  // Render a human-readable summary of a condition
-  // Uses proper type guard and DOMPurify to sanitize user input and prevent XSS attacks
-  const renderConditionSummary = useCallback((condition: RuleCondition, index: number): string => {
-    // Use proper type guard instead of unsafe assertion
-    if (isPropertyRuleCondition(condition)) {
-      // Sanitize all string values to prevent XSS
-      const safeObject = DOMPurify.sanitize(condition.object, { ALLOWED_TAGS: [] });
-      const safeField = DOMPurify.sanitize(condition.field, { ALLOWED_TAGS: [] });
-      const safeOperator = DOMPurify.sanitize(condition.operator, { ALLOWED_TAGS: [] });
-
-      let summary = `${safeObject}.${safeField} ${safeOperator}`;
-
-      if (condition.value !== undefined) {
-        const valueStr = Array.isArray(condition.value)
-          ? condition.value.map(v => DOMPurify.sanitize(String(v), { ALLOWED_TAGS: [] })).join(', ')
-          : DOMPurify.sanitize(String(condition.value), { ALLOWED_TAGS: [] });
-        summary += ` ${valueStr}`;
+  // Handle deleting a condition by ID
+  const handleDeleteCondition = useCallback((conditionId: string): void => {
+    const newConditions = rules.conditions.filter((c) => {
+      // Support both ID-based and index-based filtering for backward compatibility
+      if ('id' in c && c.id) {
+        return c.id !== conditionId;
       }
-      return summary;
-    }
+      return true;
+    });
+    onChange({
+      ...rules,
+      conditions: newConditions,
+    });
+  }, [rules, onChange]);
 
-    // Placeholder for other condition types
-    return `Condition ${index + 1}`;
-  }, []);
+  // Memoize condition summaries to avoid expensive DOMPurify operations on every render
+  const conditionSummaries = useMemo(() => {
+    return rules.conditions.map((condition, index) => {
+      // Use proper type guard instead of unsafe assertion
+      if (isPropertyRuleCondition(condition)) {
+        // Sanitize all string values to prevent XSS
+        const safeObject = DOMPurify.sanitize(condition.object, { ALLOWED_TAGS: [] });
+        const safeField = DOMPurify.sanitize(condition.field, { ALLOWED_TAGS: [] });
+        const safeOperator = DOMPurify.sanitize(condition.operator, { ALLOWED_TAGS: [] });
+
+        let summary = `${safeObject}.${safeField} ${safeOperator}`;
+
+        if (condition.value !== undefined) {
+          const valueStr = Array.isArray(condition.value)
+            ? condition.value.map(v => DOMPurify.sanitize(String(v), { ALLOWED_TAGS: [] })).join(', ')
+            : DOMPurify.sanitize(String(condition.value), { ALLOWED_TAGS: [] });
+          summary += ` ${valueStr}`;
+        }
+        return summary;
+      }
+
+      // Placeholder for other condition types
+      return `Condition ${index + 1}`;
+    });
+  }, [rules.conditions]); // Only recompute when conditions array changes
 
   // Memoized tab button component
   const TabButton = memo(({ type, label }: { type: RuleType; label: string }) => (
@@ -203,27 +215,32 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
       {rules.conditions.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-700">Current Conditions:</h3>
-          {rules.conditions.map((condition, index) => (
-            <div
-              key={index}
-              className="bg-white border border-gray-300 rounded-lg p-4 flex items-center justify-between"
-            >
-              <div className="flex-1">
-                <p className="text-sm font-mono text-gray-800">
-                  {renderConditionSummary(condition, index)}
-                </p>
+          {rules.conditions.map((condition, index) => {
+            // Get condition ID, generate one if missing (backward compatibility)
+            const conditionId = ('id' in condition && condition.id) ? condition.id : `temp-${index}`;
+
+            return (
+              <div
+                key={conditionId}
+                className="bg-white border border-gray-300 rounded-lg p-4 flex items-center justify-between"
+              >
+                <div className="flex-1">
+                  <p className="text-sm font-mono text-gray-800">
+                    {conditionSummaries[index]}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCondition(conditionId)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCondition(index)}
-                  className="text-red-600 hover:text-red-800 text-sm font-medium"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
