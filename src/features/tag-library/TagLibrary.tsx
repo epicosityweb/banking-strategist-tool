@@ -1,10 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext-v2';
 import { Plus, Search, Filter } from 'lucide-react';
 import TagCard from './components/TagCard';
 import TagModal from './components/TagModal';
 import { Tag } from '../../types/tag';
 import tagLibraryData from '../../data/tagLibrary.json';
+
+// Extended tag type with pre-computed search text
+interface SearchableTag extends Tag {
+  searchText: string;
+}
 
 /**
  * Tag Library - Main View
@@ -32,12 +37,31 @@ type CategoryStats = {
 export default function TagLibrary() {
   const { state, addTagFromLibrary } = useProject();
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
 
+  // Debounce search input (300ms delay to reduce string operations)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Pre-compute search text for all tags (only once on mount)
+  // Combines name + description + category into single lowercased string
+  // Avoids repeated toLowerCase() calls during filtering
+  const searchableTags = useMemo<SearchableTag[]>(() => {
+    return (tagLibraryData.tags as Tag[]).map(tag => ({
+      ...tag,
+      searchText: `${tag.name} ${tag.description} ${tag.category}`.toLowerCase()
+    }));
+  }, []); // Empty deps - only compute once
+
   // Get all available tags (pre-built library)
-  const availableTags = tagLibraryData.tags as Tag[];
+  const availableTags = searchableTags;
 
   // Get tags already added to this implementation
   const implementationTags = state.tags?.library || [];
@@ -48,26 +72,23 @@ export default function TagLibrary() {
   ];
 
   // Filter tags based on search and category
+  // Uses pre-computed searchText and debounced search term for optimal performance
   const filteredTags = useMemo(() => {
     return availableTags.filter((tag) => {
-      // Category filter
+      // Category filter (fast comparison)
       if (selectedCategory !== 'all' && tag.category !== selectedCategory) {
         return false;
       }
 
-      // Search filter
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase();
-        return (
-          tag.name.toLowerCase().includes(search) ||
-          tag.description.toLowerCase().includes(search) ||
-          tag.category.toLowerCase().includes(search)
-        );
+      // Search filter (optimized with pre-computed searchText)
+      if (debouncedSearchTerm) {
+        const search = debouncedSearchTerm.toLowerCase();
+        return tag.searchText.includes(search);
       }
 
       return true;
     });
-  }, [availableTags, searchTerm, selectedCategory]);
+  }, [availableTags, debouncedSearchTerm, selectedCategory]);
 
   // Category statistics
   const categoryStats = useMemo<CategoryStats>(() => {

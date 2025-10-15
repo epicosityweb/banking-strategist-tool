@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Check, Plus, Eye } from 'lucide-react';
 import { Tag, PropertyRuleCondition, ActivityRuleCondition, ScoreRuleCondition, RuleCondition } from '../../../types/tag';
 
@@ -28,7 +28,7 @@ function isScoreCondition(condition: RuleCondition): condition is ScoreRuleCondi
   return 'scoreField' in condition;
 }
 
-export default function TagCard({ tag, isAdded, onAdd }: TagCardProps) {
+const TagCard = memo(({ tag, isAdded, onAdd }: TagCardProps) => {
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const categoryColors = {
@@ -200,4 +200,15 @@ export default function TagCard({ tag, isAdded, onAdd }: TagCardProps) {
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if these props change
+  // onAdd is stable from useCallback, no need to check
+  return (
+    prevProps.tag.id === nextProps.tag.id &&
+    prevProps.isAdded === nextProps.isAdded
+  );
+});
+
+TagCard.displayName = 'TagCard';
+
+export default TagCard;
