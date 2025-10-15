@@ -63,7 +63,7 @@ function Dashboard() {
   const handleOpenProject = async (projectId) => {
     const project = state.projects.find(p => p.id === projectId);
     if (project) {
-      const { error: loadError } = await loadProject(project);
+      const { error: loadError } = await loadProject(projectId);
 
       if (loadError) {
         setError('Failed to load project. Please try again.');
@@ -195,7 +195,7 @@ function Dashboard() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">
-                      {project.clientProfile?.basicInfo?.institutionName || 'Untitled Project'}
+                      {project.name || project.clientProfile?.basicInfo?.institutionName || 'Untitled Project'}
                     </h3>
                     <p className="text-sm text-slate-500 mt-1">
                       {project.clientProfile?.basicInfo?.fiType || 'Type not set'}
