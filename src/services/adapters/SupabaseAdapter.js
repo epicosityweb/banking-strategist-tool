@@ -22,6 +22,8 @@ const projectSchema = z.object({
     custom: z.array(z.any()),
   }).optional(),
   journeys: z.array(z.any()).optional(),
+  createdAt: z.string().optional(),
+  savedAt: z.string().optional(),
 });
 
 /**
@@ -181,8 +183,8 @@ class SupabaseAdapter extends IStorageAdapter {
         name: row.name,
         status: row.status,
         clientProfile: row.data?.clientProfile || {},
-        dataModel: row.data?.dataModel || { objects: [], associations: [] },
-        tags: row.data?.tags || [],
+        dataModel: row.data?.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
+        tags: row.data?.tags || { library: [], custom: [] },
         journeys: row.data?.journeys || [],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -218,8 +220,8 @@ class SupabaseAdapter extends IStorageAdapter {
         name: data.name,
         status: data.status,
         clientProfile: data.data?.clientProfile || {},
-        dataModel: data.data?.dataModel || { objects: [], associations: [] },
-        tags: data.data?.tags || [],
+        dataModel: data.data?.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
+        tags: data.data?.tags || { library: [], custom: [] },
         journeys: data.data?.journeys || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -246,24 +248,28 @@ class SupabaseAdapter extends IStorageAdapter {
       }
 
       const { userId, error: authError } = await this._getCurrentUserId();
-      if (authError) return { data: null, error: authError };
+      if (authError) {
+        return { data: null, error: authError };
+      }
 
       const projectId = projectData.id || generateId();
 
+      const insertData = {
+        id: projectId,
+        owner_id: userId,
+        name: projectData.name,
+        status: projectData.status || 'draft',
+        data: {
+          clientProfile: projectData.clientProfile || {},
+          dataModel: projectData.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
+          tags: projectData.tags || { library: [], custom: [] },
+          journeys: projectData.journeys || [],
+        },
+      };
+
       const { data, error } = await this.supabase
         .from('implementations')
-        .insert({
-          id: projectId,
-          owner_id: userId,
-          name: projectData.name,
-          status: projectData.status || 'draft',
-          data: {
-            clientProfile: projectData.clientProfile || {},
-            dataModel: projectData.dataModel || { objects: [], associations: [] },
-            tags: projectData.tags || [],
-            journeys: projectData.journeys || [],
-          },
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -277,8 +283,8 @@ class SupabaseAdapter extends IStorageAdapter {
         name: data.name,
         status: data.status,
         clientProfile: data.data?.clientProfile || {},
-        dataModel: data.data?.dataModel || { objects: [], associations: [] },
-        tags: data.data?.tags || [],
+        dataModel: data.data?.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
+        tags: data.data?.tags || { library: [], custom: [] },
         journeys: data.data?.journeys || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -349,8 +355,8 @@ class SupabaseAdapter extends IStorageAdapter {
         name: data.name,
         status: data.status,
         clientProfile: data.data?.clientProfile || {},
-        dataModel: data.data?.dataModel || { objects: [], associations: [] },
-        tags: data.data?.tags || [],
+        dataModel: data.data?.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
+        tags: data.data?.tags || { library: [], custom: [] },
         journeys: data.data?.journeys || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -435,7 +441,7 @@ class SupabaseAdapter extends IStorageAdapter {
         updatedAt: new Date().toISOString(),
       };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       dataModel.objects = [...dataModel.objects, newObject];
 
       const updateResult = await this.updateProject(projectId, { dataModel });
@@ -469,7 +475,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       const objectIndex = dataModel.objects.findIndex((o) => o.id === objectId);
 
       if (objectIndex === -1) {
@@ -517,7 +523,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       const objectIndex = dataModel.objects.findIndex((o) => o.id === objectId);
 
       if (objectIndex === -1) {
@@ -575,7 +581,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       const object = dataModel.objects.find((o) => o.id === objectId);
 
       if (!object) {
@@ -626,7 +632,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       const object = dataModel.objects.find((o) => o.id === objectId);
 
       if (!object) {
@@ -685,7 +691,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       const object = dataModel.objects.find((o) => o.id === objectId);
 
       if (!object) {
@@ -739,7 +745,7 @@ class SupabaseAdapter extends IStorageAdapter {
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
-      const dataModel = project.dataModel || { objects: [], associations: [] };
+      const dataModel = project.dataModel || { objects: [], fields: [], mappings: [], associations: [] };
       const object = dataModel.objects.find((o) => o.id === objectId);
 
       if (!object) {

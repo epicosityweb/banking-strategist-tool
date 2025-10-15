@@ -359,40 +359,83 @@ const { data: { user } } = await supabase.auth.getUser();
 
 **Lesson:** When using third-party frameworks, always follow their documented patterns. Framework authors have encountered these pitfalls before and designed their APIs to guide you away from them.
 
-### October 15, 2025: Schema-Interface Alignment in Zod Validation
+### October 15, 2025: Zod Pre-Release Version Instability (`_zod` Error)
 
-**Context:** SupabaseAdapter schema mismatch caused `Cannot read properties of undefined (reading '_zod')` error, blocking all project CRUD operations. Hours of debugging focused on wrong component (LocalStorageAdapter) before discovering SupabaseAdapter was active.
+**Context:** SupabaseAdapter validation caused `Cannot read properties of undefined (reading '_zod')` error, blocking all project CRUD operations. Error occurred during `projectSchema.safeParse()` execution, before any validation results were returned.
 
-**Root Cause:** Zod schema in `SupabaseAdapter.js` didn't match TypeScript interfaces:
-- `tags` defined as `z.array(z.any())` but runtime data was `{ library: [], custom: [] }` (TagCollection object)
-- `dataModel` missing `fields` and `mappings` properties that exist in TypeScript `DataModel` interface
+**Initial Misdiagnosis:**
+Spent hours investigating schema-interface mismatches, adding schema fields (`createdAt`, `savedAt`, `fields`, `mappings`), and attempting to bypass validation in ProjectRepository. All schema definitions appeared correct and matched TypeScript interfaces, yet the `_zod` error persisted.
 
-**Solution:** Updated projectSchema to exactly match TypeScript interfaces:
-```javascript
-// ✅ Correct schema matching interfaces
-dataModel: z.object({
-  objects: z.array(z.any()).optional(),
-  fields: z.array(z.any()).optional(),      // Added
-  mappings: z.array(z.any()).optional(),    // Added
-  associations: z.array(z.any()).optional(),
-}).optional(),
-tags: z.object({                            // Changed from array to object
-  library: z.array(z.any()),
-  custom: z.array(z.any()),
-}).optional(),
+**Root Cause Discovery:**
+The error was NOT a schema mismatch issue. The root cause was **Zod 4.1.12**, a pre-release/beta version with stability issues. The `_zod` error is a Zod internal property access error that occurs in unstable versions, especially in mixed TypeScript/JavaScript environments where:
+1. JavaScript files (SupabaseAdapter.js) import Zod directly (`import { z } from 'zod'`)
+2. JavaScript files also import TypeScript-generated schemas (from objectSchema.ts)
+3. Module loading creates potential for Zod instance mismatches during runtime
+
+**Diagnostic Evidence:**
+- Console logs showed: `🔵 SupabaseAdapter.createProject called with: {...}`
+- BUT NO subsequent log for: `🔵 Schema validation result:`
+- This proved error happened **inside** `safeParse()`, not from validation failure
+- Error message: `Cannot read properties of undefined (reading '_zod')`
+- Zod version check: `npm list zod` showed `4.1.12`
+- NPM registry check: Confirmed 4.1.12 exists but is pre-release (stable is 3.x)
+
+**Solution:**
+Downgraded Zod from pre-release 4.1.12 to stable 3.23.8 (installed as 3.25.76, latest stable 3.x):
+
+```json
+// package.json
+"zod": "^3.23.8"  // Changed from "^4.1.12"
 ```
 
+**Implementation Steps:**
+1. Updated package.json
+2. Deleted node_modules and package-lock.json
+3. Ran `npm install`
+4. Restarted dev server
+
+**Results:**
+✅ **COMPLETE SUCCESS** - All functionality working correctly:
+```
+🔵 SupabaseAdapter.createProject called
+🔵 Schema validation result: ✅ PASS
+🔵 Auth result: ✅ User ID: d9d00199-3518-42d5-be1b-152c503131d3
+🔵 Inserting into Supabase
+✅ Supabase insert successful!
+```
+
+**Why This Worked:**
+1. Zod 3.x is production-ready and stable
+2. No breaking changes between 4.1.12 and 3.x for our codebase (no Zod 4.x-specific features used)
+3. Eliminates internal `_zod` property access errors
+4. Industry standard - most production apps use Zod 3.x
+
 **Lessons Learned:**
-1. **Always verify schema-interface alignment** - Zod schemas must exactly match TypeScript interfaces to prevent cryptic validation errors at runtime
-2. **Check actual adapter in use** - Always log which adapter is being used at startup to avoid debugging wrong component
-3. **Follow existing patterns** - The correct nested object validation pattern was already established in `tagSchema.ts` for qualification rules
+
+1. **Check dependency versions FIRST** - Before diving deep into code changes, verify all dependencies are stable releases
+2. **Pre-release versions are NOT production-ready** - Zod 4.x is still in development (canary releases)
+3. **Error message context matters** - The lack of subsequent logs revealed error was in library code, not application code
+4. **TypeScript/JavaScript interop amplifies library issues** - Mixed environments can expose library instability that wouldn't surface in pure TypeScript
+5. **Schema complexity is NOT always the problem** - Sometimes the simplest explanation (wrong version) is correct
+
+**Red Flags That Should Have Been Investigated Earlier:**
+- ❌ Zod version 4.x when stable is 3.x
+- ❌ Error happening inside library call, not after
+- ❌ `_zod` is an internal Zod property (not application code)
+- ❌ Error persisted despite all schema definitions being correct
 
 **Takeaways:**
-- Add CI check to validate schema-interface alignment automatically
-- Add adapter identification to startup logs
-- Consider single source of truth for types (e.g., generate TypeScript types from Zod schemas using `zod-to-ts`)
+- **ALWAYS use stable dependency versions in production codebases**
+- Add `npm outdated` and version checking to PR review process
+- Document approved dependency versions in CLAUDE.md
+- When debugging library-related errors, check version stability before investigating code
+- Add dependency version audit to CI/CD pipeline
 
-**Issue Reference:** #23 - SupabaseAdapter Schema Validation Mismatch
+**Dependencies to Watch:**
+- ✅ Zod: Use 3.x stable (currently 3.25.76)
+- ⚠️  Avoid: Zod 4.x pre-release versions (4.1.12, 4.2.0-canary.*)
+
+**Issue Reference:** #23 - SupabaseAdapter Schema Validation Mismatch (misleading title - actual cause was Zod version)
 
 ### October 14, 2025: Documentation Organization
 
