@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { OBJECT_NAME_PATTERN, FIELD_NAME_PATTERN } from '../utils/validationPatterns';
 
 /**
  * Validation schemas for Data Model entities using Zod
@@ -12,7 +13,7 @@ export const generateApiName = (name: string, projectId: string = 'client'): str
     .replace(/^_+|_+$/g, '')}`;
 };
 
-// Helper function to validate API name format
+// API names must be lowercase (more restrictive than general object names)
 const apiNameRegex = /^[a-z][a-z0-9_]*$/;
 
 // Enumeration Option Schema
@@ -37,7 +38,8 @@ export const fieldSchema = z.object({
     .string()
     .min(2, 'Field name must be at least 2 characters')
     .max(100, 'Field name must be less than 100 characters')
-    .regex(/^[a-z][a-z0-9_]*$/, 'Field name must be lowercase, start with a letter, and contain only letters, numbers, and underscores'),
+    .regex(FIELD_NAME_PATTERN.regex, FIELD_NAME_PATTERN.errorMessage)
+    .transform(val => val.toLowerCase()), // Convert to lowercase for API compatibility
   label: z.string().min(1, 'Field label is required').max(200, 'Field label must be less than 200 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').default(''),
   dataType: z.enum(['text', 'multiline_text', 'number', 'currency', 'date', 'datetime', 'boolean', 'enumeration', 'email', 'phone', 'url']),
@@ -69,7 +71,8 @@ export const customObjectSchema = z.object({
     .string()
     .min(2, 'Object name must be at least 2 characters')
     .max(100, 'Object name must be less than 100 characters')
-    .regex(/^[a-z][a-z0-9_]*$/, 'Object name must be lowercase, start with a letter, and contain only letters, numbers, and underscores'),
+    .regex(OBJECT_NAME_PATTERN.regex, OBJECT_NAME_PATTERN.errorMessage)
+    .transform(val => val.toLowerCase()), // Convert to lowercase for API compatibility
   label: z.string().min(1, 'Display label is required').max(200, 'Display label must be less than 200 characters'),
   description: z.string().max(1000, 'Description must be less than 1000 characters').default(''),
   apiName: z
