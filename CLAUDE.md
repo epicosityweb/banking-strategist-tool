@@ -1,6 +1,6 @@
 # Interactive Strategist Tool - Development Guide
 
-**Last Updated:** October 14, 2025
+**Last Updated:** October 15, 2025
 **Status:** ✅ Production Ready - Single-tenant Supabase architecture complete
 **Primary Maintainer:** Epicosity Team
 
@@ -358,6 +358,41 @@ const { data: { user } } = await supabase.auth.getUser();
 ```
 
 **Lesson:** When using third-party frameworks, always follow their documented patterns. Framework authors have encountered these pitfalls before and designed their APIs to guide you away from them.
+
+### October 15, 2025: Schema-Interface Alignment in Zod Validation
+
+**Context:** SupabaseAdapter schema mismatch caused `Cannot read properties of undefined (reading '_zod')` error, blocking all project CRUD operations. Hours of debugging focused on wrong component (LocalStorageAdapter) before discovering SupabaseAdapter was active.
+
+**Root Cause:** Zod schema in `SupabaseAdapter.js` didn't match TypeScript interfaces:
+- `tags` defined as `z.array(z.any())` but runtime data was `{ library: [], custom: [] }` (TagCollection object)
+- `dataModel` missing `fields` and `mappings` properties that exist in TypeScript `DataModel` interface
+
+**Solution:** Updated projectSchema to exactly match TypeScript interfaces:
+```javascript
+// ✅ Correct schema matching interfaces
+dataModel: z.object({
+  objects: z.array(z.any()).optional(),
+  fields: z.array(z.any()).optional(),      // Added
+  mappings: z.array(z.any()).optional(),    // Added
+  associations: z.array(z.any()).optional(),
+}).optional(),
+tags: z.object({                            // Changed from array to object
+  library: z.array(z.any()),
+  custom: z.array(z.any()),
+}).optional(),
+```
+
+**Lessons Learned:**
+1. **Always verify schema-interface alignment** - Zod schemas must exactly match TypeScript interfaces to prevent cryptic validation errors at runtime
+2. **Check actual adapter in use** - Always log which adapter is being used at startup to avoid debugging wrong component
+3. **Follow existing patterns** - The correct nested object validation pattern was already established in `tagSchema.ts` for qualification rules
+
+**Takeaways:**
+- Add CI check to validate schema-interface alignment automatically
+- Add adapter identification to startup logs
+- Consider single source of truth for types (e.g., generate TypeScript types from Zod schemas using `zod-to-ts`)
+
+**Issue Reference:** #23 - SupabaseAdapter Schema Validation Mismatch
 
 ### October 14, 2025: Documentation Organization
 

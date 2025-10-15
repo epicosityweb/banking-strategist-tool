@@ -5,16 +5,22 @@ import { customObjectSchema, fieldSchema as customFieldSchema } from '../../sche
 import { z } from 'zod';
 
 // Project schema for validation
+// Must match TypeScript Project interface (src/types/project.ts)
 const projectSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Project name is required'),
   status: z.enum(['draft', 'active', 'archived']).optional(),
   clientProfile: z.record(z.any()).optional(),
   dataModel: z.object({
-    objects: z.array(z.any()),
-    associations: z.array(z.any()),
+    objects: z.array(z.any()).optional(),
+    fields: z.array(z.any()).optional(),      // Added to match DataModel interface
+    mappings: z.array(z.any()).optional(),    // Added to match DataModel interface
+    associations: z.array(z.any()).optional(),
   }).optional(),
-  tags: z.array(z.any()).optional(),
+  tags: z.object({                            // Changed from array to object to match TagCollection interface
+    library: z.array(z.any()),
+    custom: z.array(z.any()),
+  }).optional(),
   journeys: z.array(z.any()).optional(),
 });
 
