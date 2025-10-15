@@ -2,6 +2,11 @@ import { createContext, useContext, useReducer, useEffect, useCallback, ReactNod
 // @ts-ignore - ProjectRepository is still .js, will be migrated later
 import projectRepository from '../services/ProjectRepository';
 import { ProjectState, ProjectAction, Tag, CustomObject, CustomField, Project } from '../types/project';
+import {
+  checkTagCreationLimit,
+  checkTagUpdateLimit,
+  checkTagDeletionLimit,
+} from '../utils/rateLimiter';
 
 /**
  * Project Context V2
@@ -789,6 +794,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return { data: null, error: 'No project selected' };
       }
 
+      // Check rate limit (10 tags per minute)
+      try {
+        checkTagCreationLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
+      }
+
       // Optimistic update
       dispatch({ type: 'ADD_TAG', payload: tagData });
 
@@ -825,6 +838,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     async (tagData: Tag): Promise<RepositoryResponse<Tag>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
+      }
+
+      // Check rate limit (30 updates per minute)
+      try {
+        checkTagUpdateLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
       }
 
       // Store original for rollback
@@ -874,6 +895,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return { data: null, error: 'No project selected' };
       }
 
+      // Check rate limit (20 deletions per minute)
+      try {
+        checkTagDeletionLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
+      }
+
       // Store original for rollback
       const original = (state.tags.custom || []).find((tag) => tag.id === tagId);
 
@@ -917,6 +946,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     async (tagData: Tag): Promise<RepositoryResponse<Tag>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
+      }
+
+      // Check rate limit (10 tags per minute - same as custom tags)
+      try {
+        checkTagCreationLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
       }
 
       // Optimistic update
