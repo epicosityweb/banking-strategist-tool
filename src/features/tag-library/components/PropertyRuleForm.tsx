@@ -11,7 +11,7 @@
  * and TypeScript safety throughout.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import type { PropertyRuleCondition } from '../../../types/tag';
 import type { CustomObject } from '../../../types/project';
 
@@ -87,7 +87,7 @@ const OPERATOR_LABELS: Record<PropertyRuleCondition['operator'], string> = {
   is_unknown: 'is unknown (no value)',
 };
 
-export default function PropertyRuleForm({
+function PropertyRuleForm({
   condition,
   onChange,
   objects,
@@ -385,3 +385,12 @@ export default function PropertyRuleForm({
     </div>
   );
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(PropertyRuleForm, (prevProps, nextProps) => {
+  return (
+    prevProps.condition === nextProps.condition &&
+    prevProps.objects === nextProps.objects &&
+    prevProps.onCancel === nextProps.onCancel
+  );
+});

@@ -10,7 +10,7 @@
  * Follows compounding engineering principles with TypeScript safety and reusable patterns.
  */
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import DOMPurify from 'dompurify';
 import type {
   QualificationRules,
@@ -19,6 +19,21 @@ import type {
 } from '../../../types/tag';
 import type { DataModel } from '../../../types/project';
 import PropertyRuleForm from './PropertyRuleForm';
+
+/**
+ * Type guard for PropertyRuleCondition
+ * Validates all required fields exist and have correct types
+ */
+function isPropertyRuleCondition(condition: RuleCondition): condition is PropertyRuleCondition {
+  return (
+    'object' in condition &&
+    typeof condition.object === 'string' &&
+    'field' in condition &&
+    typeof condition.field === 'string' &&
+    'operator' in condition &&
+    typeof condition.operator === 'string'
+  );
+}
 
 export interface RuleBuilderProps {
   /** Current qualification rules being edited */
@@ -35,66 +50,74 @@ type RuleType = 'property' | 'activity' | 'association' | 'score';
 
 /**
  * Main RuleBuilder component with tabbed interface
+ * Memoized to prevent unnecessary re-renders
  */
-export default function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
+function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
   const [activeTab, setActiveTab] = useState<RuleType>(rules.ruleType);
 
-  // Handle tab change
-  const handleTabChange = (newTab: RuleType): void => {
-    setActiveTab(newTab);
+  // Handle tab change with confirmation if conditions exist
+  const handleTabChange = useCallback((newTab: RuleType): void => {
+    // If switching away from current tab and there are conditions
+    if (newTab !== activeTab && rules.conditions.length > 0) {
+      const confirmed = window.confirm(
+        `Switching rule types will clear your ${rules.conditions.length} existing condition(s). Continue?`
+      );
 
-    // Update rule type and clear conditions when switching tabs
+      if (!confirmed) {
+        return; // User cancelled, don't switch tabs
+      }
+    }
+
+    setActiveTab(newTab);
     onChange({
       ...rules,
       ruleType: newTab,
-      conditions: [], // Clear conditions when switching rule types
+      conditions: [],
     });
-  };
+  }, [activeTab, rules, onChange]);
 
   // Handle logic change (AND/OR)
-  const handleLogicChange = (logic: 'AND' | 'OR'): void => {
+  const handleLogicChange = useCallback((logic: 'AND' | 'OR'): void => {
     onChange({
       ...rules,
       logic,
     });
-  };
+  }, [rules, onChange]);
 
   // Handle adding a new condition
-  const handleAddCondition = (condition: PropertyRuleCondition): void => {
+  const handleAddCondition = useCallback((condition: PropertyRuleCondition): void => {
     const newConditions = [...rules.conditions, condition];
     onChange({
       ...rules,
       conditions: newConditions,
     });
-  };
+  }, [rules, onChange]);
 
   // Handle deleting a condition
-  const handleDeleteCondition = (index: number): void => {
+  const handleDeleteCondition = useCallback((index: number): void => {
     const newConditions = rules.conditions.filter((_, i) => i !== index);
     onChange({
       ...rules,
       conditions: newConditions,
     });
-  };
+  }, [rules, onChange]);
 
   // Render a human-readable summary of a condition
-  // Uses DOMPurify to sanitize user input and prevent XSS attacks
-  const renderConditionSummary = (condition: RuleCondition, index: number): string => {
-    // Type guard for property conditions
-    if ('object' in condition && 'field' in condition) {
-      const propCondition = condition as PropertyRuleCondition;
-
+  // Uses proper type guard and DOMPurify to sanitize user input and prevent XSS attacks
+  const renderConditionSummary = useCallback((condition: RuleCondition, index: number): string => {
+    // Use proper type guard instead of unsafe assertion
+    if (isPropertyRuleCondition(condition)) {
       // Sanitize all string values to prevent XSS
-      const safeObject = DOMPurify.sanitize(propCondition.object, { ALLOWED_TAGS: [] });
-      const safeField = DOMPurify.sanitize(propCondition.field, { ALLOWED_TAGS: [] });
-      const safeOperator = DOMPurify.sanitize(propCondition.operator, { ALLOWED_TAGS: [] });
+      const safeObject = DOMPurify.sanitize(condition.object, { ALLOWED_TAGS: [] });
+      const safeField = DOMPurify.sanitize(condition.field, { ALLOWED_TAGS: [] });
+      const safeOperator = DOMPurify.sanitize(condition.operator, { ALLOWED_TAGS: [] });
 
       let summary = `${safeObject}.${safeField} ${safeOperator}`;
 
-      if (propCondition.value !== undefined) {
-        const valueStr = Array.isArray(propCondition.value)
-          ? propCondition.value.map(v => DOMPurify.sanitize(String(v), { ALLOWED_TAGS: [] })).join(', ')
-          : DOMPurify.sanitize(String(propCondition.value), { ALLOWED_TAGS: [] });
+      if (condition.value !== undefined) {
+        const valueStr = Array.isArray(condition.value)
+          ? condition.value.map(v => DOMPurify.sanitize(String(v), { ALLOWED_TAGS: [] })).join(', ')
+          : DOMPurify.sanitize(String(condition.value), { ALLOWED_TAGS: [] });
         summary += ` ${valueStr}`;
       }
       return summary;
@@ -102,10 +125,10 @@ export default function RuleBuilder({ rules, onChange, dataModel, errors }: Rule
 
     // Placeholder for other condition types
     return `Condition ${index + 1}`;
-  };
+  }, []);
 
-  // Tab button component
-  const TabButton = ({ type, label }: { type: RuleType; label: string }) => (
+  // Memoized tab button component
+  const TabButton = memo(({ type, label }: { type: RuleType; label: string }) => (
     <button
       type="button"
       onClick={() => handleTabChange(type)}
@@ -119,7 +142,9 @@ export default function RuleBuilder({ rules, onChange, dataModel, errors }: Rule
     >
       {label}
     </button>
-  );
+  ));
+
+  TabButton.displayName = 'TabButton';
 
   return (
     <div className="space-y-4">
@@ -271,3 +296,12 @@ export default function RuleBuilder({ rules, onChange, dataModel, errors }: Rule
     </div>
   );
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(RuleBuilder, (prevProps, nextProps) => {
+  return (
+    prevProps.rules === nextProps.rules &&
+    prevProps.dataModel === nextProps.dataModel &&
+    JSON.stringify(prevProps.errors) === JSON.stringify(nextProps.errors)
+  );
+});
