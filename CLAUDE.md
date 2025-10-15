@@ -437,6 +437,135 @@ Downgraded Zod from pre-release 4.1.12 to stable 3.23.8 (installed as 3.25.76, l
 
 **Issue Reference:** #23 - SupabaseAdapter Schema Validation Mismatch (misleading title - actual cause was Zod version)
 
+### October 15, 2025: localStorage to Supabase Migration Testing
+
+**Context:** Needed to verify that the migration utility successfully transfers Client Profile data (33 fields) from browser localStorage to Supabase cloud database. Used automated testing via Chrome DevTools MCP to simulate user interactions.
+
+**Challenge #1: Dev Server Running from Wrong Directory**
+
+**Problem:** After adding debug logging to App.jsx, the logs never appeared in the browser console, and code changes weren't being reflected.
+
+**Root Cause:** Vite dev server was running from the main project directory (`/strategist-tool`) instead of the worktree directory (`/.worktrees/client-profile-supabase/strategist-tool`). The browser was loading cached JavaScript from the wrong source.
+
+**Diagnostic Evidence:**
+- Network request showed: `http://localhost:5173/src/App.jsx?t=1760553006900` returning 304 (Not Modified)
+- Response body contained file path: `/Users/.../Banking Journey Orchestration Framework/strategist-tool/src/App.jsx` (main directory, not worktree)
+- Process check revealed: `node .../strategist-tool/node_modules/.bin/vite` (PID 46122)
+
+**Solution:**
+```bash
+# Kill dev server in main directory
+kill 46122
+
+# Start dev server in worktree directory
+cd .worktrees/client-profile-supabase/strategist-tool
+npm run dev
+```
+
+**Why This Worked:**
+- Vite now serving files from worktree directory with our changes
+- HMR (Hot Module Reload) detecting file changes in correct location
+- Browser loading fresh JavaScript bundles, not cached versions
+
+**Challenge #2: UUID Validation Error in Migration**
+
+**Problem:** Migration failed with error: `invalid input syntax for type uuid: "test-project-001"`
+
+**Root Cause:** Migration code was using localStorage project IDs (like `"test-project-001"`) directly as Supabase primary keys, but Supabase's `implementations.id` column has type `uuid`, which requires valid UUID v4 format.
+
+**Diagnostic Evidence:**
+```
+Error: Failed to create project test-project-001:
+invalid input syntax for type uuid: "test-project-001"
+```
+
+**Solution:**
+```typescript
+// migrateToSupabase.ts
+
+// Import UUID generator
+import { generateId } from './idGenerator';
+
+// Generate new UUID instead of reusing localStorage ID
+const newProjectId = generateId();  // e.g., "a1b2c3d4-..."
+
+const { error } = await repository.createProject({
+  id: newProjectId,  // ✅ Valid UUID v4
+  name: project.name,
+  // ... rest of project data
+});
+```
+
+**Why This Worked:**
+- `generateId()` produces valid UUID v4 format: `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`
+- Supabase accepts these UUIDs for the `id` column
+- Removed unnecessary duplicate project check (no longer needed with fresh UUIDs)
+
+**Testing Results:**
+✅ Migration completed successfully:
+- New project created: "Test Credit Union - Migration Test"
+- Project type displayed: "credit_union"
+- All 33 Client Profile fields preserved (20 basicInfo + 13 integrationSpecs)
+- Data synced to Supabase and visible across browsers (Arc + Chrome)
+
+**Lessons Learned:**
+
+1. **Worktree isolation requires matching dev server** - When working in worktrees, ensure your development server is running from the worktree directory, not the main directory. File watchers and HMR only detect changes in their source directory.
+
+2. **Database constraints must be respected during migration** - When migrating data between storage systems with different schema constraints (localStorage strings → Supabase UUIDs), generate new IDs that meet the target system's requirements rather than attempting to preserve source system IDs.
+
+3. **Chrome DevTools MCP enables powerful automated testing** - Using the Chrome DevTools MCP server allows for:
+   - Automated browser interactions (login, form filling, button clicks)
+   - Console log inspection for debugging
+   - Network request monitoring
+   - Script injection for data setup
+   - Screenshot capture for verification
+
+4. **Error messages reveal architectural mismatches** - The "invalid input syntax for type uuid" error immediately indicated that our data migration assumed compatible ID formats between source and destination, which was incorrect.
+
+5. **Migration UX patterns** - Effective migration UI includes:
+   - Clear explanation of what will happen
+   - List of safety features (validation, rollback, backup)
+   - Progress states (idle → migrating → success/error)
+   - Error handling with retry capability
+   - Success confirmation before closing
+
+**Key Pattern: Dev Server Location Check**
+```bash
+# Before starting work, verify dev server location
+lsof -ti:5173  # Get PIDs using port 5173
+ps -p <PID> -o command  # Check which directory it's running from
+
+# If wrong directory, restart in correct location
+kill <PID>
+cd .worktrees/your-worktree/project
+npm run dev
+```
+
+**Migration Testing Checklist:**
+- [ ] Test data injected into source storage (localStorage)
+- [ ] User authentication verified
+- [ ] Migration prompt displays automatically
+- [ ] Migration UI shows clear messaging and safety features
+- [ ] Migration completes without errors
+- [ ] All fields preserved in destination (Supabase)
+- [ ] Data visible in destination system
+- [ ] Error handling works (shows retry option)
+- [ ] Success state displays before closing
+
+**Files Modified:**
+- [migrateToSupabase.ts](strategist-tool/src/utils/migrateToSupabase.ts) - Added UUID generation for Supabase compatibility
+- [MIGRATION-TEST-RESULTS.md](strategist-tool/MIGRATION-TEST-RESULTS.md) - Comprehensive test documentation (446 lines)
+
+**Compounding Effect:**
+This testing session established:
+- Automated testing patterns using Chrome DevTools MCP
+- Migration utility verification checklist
+- Worktree dev server debugging procedures
+- UUID generation requirements for Supabase migrations
+
+Future migrations will be faster and more reliable due to documented patterns and established testing procedures.
+
 ### October 14, 2025: Documentation Organization
 
 **Context:** Had three separate planning documents (SUPABASE-MIGRATION-PLAN.md, SERVICE-LAYER-IMPLEMENTATION.md, IMPLEMENTATION-PLAN.md) all describing the same work from different angles.
