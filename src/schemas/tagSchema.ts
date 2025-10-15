@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TAG_NAME_PATTERN } from '../utils/validationPatterns';
 import type { Tag, CustomObject, CustomField, QualificationRules } from '../types/tag';
 
 /**
@@ -12,6 +13,7 @@ import type { Tag, CustomObject, CustomField, QualificationRules } from '../type
 
 // Property Rule Condition
 export const propertyRuleConditionSchema = z.object({
+  id: z.string().optional(), // Unique ID for React key prop
   object: z.string().min(1, 'Object name is required'),
   field: z.string().min(1, 'Field name is required'),
   operator: z.enum([
@@ -116,10 +118,7 @@ export const tagSchema = z.object({
     .string()
     .min(2, 'Tag name must be at least 2 characters')
     .max(100, 'Tag name must be less than 100 characters')
-    .regex(
-      /^[A-Z][A-Za-z0-9_]*$/,
-      'Tag name must start with uppercase letter and contain only letters, numbers, and underscores'
-    ),
+    .regex(TAG_NAME_PATTERN.regex, TAG_NAME_PATTERN.errorMessage),
   category: tagCategorySchema,
   description: z
     .string()

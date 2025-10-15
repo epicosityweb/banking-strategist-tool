@@ -2,6 +2,11 @@ import { createContext, useContext, useReducer, useEffect, useCallback, ReactNod
 // @ts-ignore - ProjectRepository is still .js, will be migrated later
 import projectRepository from '../services/ProjectRepository';
 import { ProjectState, ProjectAction, Tag, CustomObject, CustomField, Project } from '../types/project';
+import {
+  checkTagCreationLimit,
+  checkTagUpdateLimit,
+  checkTagDeletionLimit,
+} from '../utils/rateLimiter';
 
 /**
  * Project Context V2
@@ -789,6 +794,30 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return { data: null, error: 'No project selected' };
       }
 
+      // Check rate limit (10 tags per minute)
+      try {
+        checkTagCreationLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
+      }
+
+      // Check tag name uniqueness (case-insensitive)
+      const normalizedName = tagData.name.toLowerCase();
+      const duplicateCustom = (state.tags.custom || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+      const duplicateLibrary = (state.tags.library || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+
+      if (duplicateCustom || duplicateLibrary) {
+        return {
+          data: null,
+          error: `Tag name "${tagData.name}" already exists. Please choose a different name.`,
+        };
+      }
+
       // Optimistic update
       dispatch({ type: 'ADD_TAG', payload: tagData });
 
@@ -827,11 +856,37 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return { data: null, error: 'No project selected' };
       }
 
+      // Check rate limit (30 updates per minute)
+      try {
+        checkTagUpdateLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
+      }
+
       // Store original for rollback
       const original = (state.tags.custom || []).find((tag) => tag.id === tagData.id);
 
       if (!original) {
         return { data: null, error: 'Tag not found' };
+      }
+
+      // Check tag name uniqueness if name changed (case-insensitive)
+      if (tagData.name.toLowerCase() !== original.name.toLowerCase()) {
+        const normalizedName = tagData.name.toLowerCase();
+        const duplicateCustom = (state.tags.custom || []).find(
+          (tag) => tag.id !== tagData.id && tag.name.toLowerCase() === normalizedName
+        );
+        const duplicateLibrary = (state.tags.library || []).find(
+          (tag) => tag.name.toLowerCase() === normalizedName
+        );
+
+        if (duplicateCustom || duplicateLibrary) {
+          return {
+            data: null,
+            error: `Tag name "${tagData.name}" already exists. Please choose a different name.`,
+          };
+        }
       }
 
       // Optimistic update
@@ -872,6 +927,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     async (tagId: string): Promise<RepositoryResponse<{ id: string }>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
+      }
+
+      // Check rate limit (20 deletions per minute)
+      try {
+        checkTagDeletionLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
       }
 
       // Store original for rollback
@@ -917,6 +980,30 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     async (tagData: Tag): Promise<RepositoryResponse<Tag>> => {
       if (!state.currentProject) {
         return { data: null, error: 'No project selected' };
+      }
+
+      // Check rate limit (10 tags per minute - same as custom tags)
+      try {
+        checkTagCreationLimit();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { data: null, error: errorMessage };
+      }
+
+      // Check tag name uniqueness (case-insensitive)
+      const normalizedName = tagData.name.toLowerCase();
+      const duplicateCustom = (state.tags.custom || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+      const duplicateLibrary = (state.tags.library || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+
+      if (duplicateCustom || duplicateLibrary) {
+        return {
+          data: null,
+          error: `Tag name "${tagData.name}" already exists. Please choose a different name.`,
+        };
       }
 
       // Optimistic update

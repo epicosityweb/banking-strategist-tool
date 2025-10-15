@@ -203,10 +203,10 @@ Components created:
 
 ## Epic 4: Tag Library & Journey Designer (🏗️ IN PROGRESS)
 
-**Status:** Phase 1-3 Complete - UI & Management Ready
-**Estimated Duration:** 4 weeks (157 hours)
+**Status:** Phase 1-4 Complete - Rule Builder Ready (70% Complete)
+**Estimated Duration:** 4 weeks (157 hours completed: 110 hours)
 **GitHub Issue:** [#3](https://github.com/epicosityweb/banking-orchestration-framework-explainer/issues/3)
-**Branch:** `epic-4-tag-library`
+**Branch:** `epic-4-phase-4-rule-builder`
 
 ### Milestone 4.1: Foundation & Data Model ✅
 **Completed:** October 14, 2025
@@ -288,15 +288,41 @@ Components created:
   - Modal state management
   - Success/error handling
 
-### Milestone 4.4: Property Rule Builder 📋
+### Milestone 4.4: Property Rule Builder ✅
+**Completed:** October 14, 2025
 **Duration:** 5 days (40 hours)
-**Status:** Not started
 
-**Tasks:**
-- [ ] Create RuleBuilder.jsx with rule type tabs
-- [ ] Build PropertyRuleForm.jsx (object → field → operator → value)
-- [ ] Implement OperatorSelector (filtered by field data type)
-- [ ] Add drag-and-drop rule ordering
+**Implemented:**
+- [x] Created [RuleBuilder.tsx](src/features/tag-library/components/RuleBuilder.tsx) with rule type tabs
+  - Tabbed interface for property, activity, association, and score rules
+  - AND/OR logic selector
+  - Condition list management (add, delete)
+  - Human-readable condition summaries
+  - Placeholder views for Phase 5-6 rule types
+- [x] Built [PropertyRuleForm.tsx](src/features/tag-library/components/PropertyRuleForm.tsx)
+  - Step-by-step form: object → field → operator → value
+  - Operator filtering by field data type (text, number, boolean, date, enum)
+  - Dynamic value input adapts to operator type
+  - Support for range operators (between), list operators (in/not_in)
+  - Real-time condition preview
+- [x] Implemented operator selection logic
+  - 14 operators: equals, not_equals, greater_than, less_than, contains, starts_with, etc.
+  - Operators filtered based on field type
+  - Value-less operators (is_known, is_unknown)
+- [x] Integrated RuleBuilder with [TagModal.tsx](src/features/tag-library/components/TagModal.tsx)
+  - Qualification rules section in tag creation/edit modal
+  - State management for rules
+  - Rules saved with tag data
+
+**TypeScript Quality:**
+- ✅ All components fully typed (.tsx)
+- ✅ Proper interfaces for all props
+- ✅ Type guards for value inputs
+- ✅ TypeScript compilation: 0 errors
+- ✅ No @ts-ignore suppressions
+
+**Deferred to Future Phases:**
+- Drag-and-drop rule ordering (nice-to-have, not critical for MVP)
 
 ### Milestone 4.5: Activity Rule Builder 📋
 **Duration:** 2 days (16 hours)

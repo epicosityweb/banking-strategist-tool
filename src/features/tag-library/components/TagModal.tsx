@@ -2,7 +2,8 @@ import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useProject } from '../../../context/ProjectContext-v2';
 import { v4 as uuidv4 } from 'uuid';
-import { Tag, TagCategory, TagBehavior } from '../../../types/tag';
+import { Tag, TagCategory, TagBehavior, QualificationRules } from '../../../types/tag';
+import RuleBuilder from './RuleBuilder';
 
 /**
  * TagModal Component
@@ -36,7 +37,7 @@ interface FormErrors {
 }
 
 export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' }: TagModalProps) {
-  const { addTag, updateTag } = useProject();
+  const { addTag, updateTag, state } = useProject();
   const [formData, setFormData] = useState<TagFormData>({
     name: '',
     category: 'behavior',
@@ -45,6 +46,11 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
     color: '#15803D',
     behavior: 'dynamic',
     isPermanent: false,
+  });
+  const [qualificationRules, setQualificationRules] = useState<QualificationRules>({
+    ruleType: 'property',
+    logic: 'AND',
+    conditions: [],
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -61,6 +67,7 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
         behavior: tag.behavior,
         isPermanent: tag.isPermanent,
       });
+      setQualificationRules(tag.qualificationRules);
     }
   }, [tag, mode]);
 
@@ -130,11 +137,7 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
         id: mode === 'edit' && tag ? tag.id : uuidv4(),
         ...formData,
         isCustom: true,
-        qualificationRules: mode === 'edit' && tag ? tag.qualificationRules : {
-          ruleType: 'property',
-          logic: 'AND',
-          conditions: [],
-        },
+        qualificationRules,
         dependencies: mode === 'edit' && tag ? tag.dependencies : [],
         createdAt: mode === 'edit' && tag ? tag.createdAt : new Date(),
         updatedAt: new Date(),
@@ -397,29 +400,19 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
                 </label>
               </div>
 
-              {/* Note about rules */}
-              <div className="rounded-md bg-blue-50 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-blue-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-blue-700">
-                      After creating the tag, you'll be able to add qualification rules to
-                      define when this tag should be automatically assigned.
-                    </p>
-                  </div>
-                </div>
+              {/* Qualification Rules Section */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-base font-medium text-gray-900 mb-4">
+                  Qualification Rules
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Define when this tag should be automatically assigned to members based on their properties, activities, or scores.
+                </p>
+                <RuleBuilder
+                  rules={qualificationRules}
+                  onChange={setQualificationRules}
+                  dataModel={state.dataModel}
+                />
               </div>
             </form>
           </div>

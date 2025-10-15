@@ -1,6 +1,22 @@
 import IStorageAdapter from './IStorageAdapter';
 import { generateId } from '../../utils/idGenerator';
 import { supabase } from '../../lib/supabase';
+import { customObjectSchema, fieldSchema as customFieldSchema } from '../../schemas/objectSchema';
+import { z } from 'zod';
+
+// Project schema for validation
+const projectSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Project name is required'),
+  status: z.enum(['draft', 'active', 'archived']).optional(),
+  clientProfile: z.record(z.any()).optional(),
+  dataModel: z.object({
+    objects: z.array(z.any()),
+    associations: z.array(z.any()),
+  }).optional(),
+  tags: z.array(z.any()).optional(),
+  journeys: z.array(z.any()).optional(),
+});
 
 /**
  * Supabase Adapter
@@ -82,6 +98,61 @@ class SupabaseAdapter extends IStorageAdapter {
   }
 
   /**
+   * Check if user has permission to access/modify a project
+   * @private
+   * @param {string} userId - Current user ID
+   * @param {string} projectId - Project ID to check
+   * @param {string} requiredRole - Required role: 'viewer', 'editor', or 'owner'
+   * @returns {Promise<boolean>} True if user has permission
+   */
+  async _checkProjectPermission(userId, projectId, requiredRole = 'viewer') {
+    try {
+      // Get project to check ownership
+      const { data: project, error: projectError } = await this.supabase
+        .from('implementations')
+        .select('owner_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) {
+        return false;
+      }
+
+      // Owner has all permissions
+      if (project.owner_id === userId) {
+        return true;
+      }
+
+      // Check project_permissions table for shared access
+      const { data: permission, error: permissionError } = await this.supabase
+        .from('project_permissions')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .single();
+
+      if (permissionError || !permission) {
+        return false;
+      }
+
+      // Map roles to permission levels
+      const roleHierarchy = {
+        viewer: 1,
+        editor: 2,
+        owner: 3,
+      };
+
+      const userLevel = roleHierarchy[permission.role] || 0;
+      const requiredLevel = roleHierarchy[requiredRole] || 0;
+
+      return userLevel >= requiredLevel;
+    } catch (error) {
+      console.error('Error checking project permission:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get all projects (all authenticated users can see all projects)
    */
   async getAllProjects() {
@@ -159,6 +230,15 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async createProject(projectData) {
     try {
+      // Server-side validation
+      const validation = projectSchema.safeParse(projectData);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
       const { userId, error: authError } = await this._getCurrentUserId();
       if (authError) return { data: null, error: authError };
 
@@ -209,8 +289,26 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async updateProject(projectId, updates) {
     try {
+      // Server-side validation for updates (partial validation)
+      const validation = projectSchema.partial().safeParse(updates);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
       const { userId, error: authError } = await this._getCurrentUserId();
       if (authError) return { data: null, error: authError };
+
+      // Authorization check: user must have editor role or be owner
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to edit this project'),
+        };
+      }
 
       // Get existing project first
       const { data: existing, error: fetchError } = await this.getProject(projectId);
@@ -266,6 +364,15 @@ class SupabaseAdapter extends IStorageAdapter {
       const { userId, error: authError } = await this._getCurrentUserId();
       if (authError) return { data: null, error: authError };
 
+      // Authorization check: only owner can delete project
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'owner');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: Only the project owner can delete this project'),
+        };
+      }
+
       // Get project before deleting
       const { data: existing, error: fetchError } = await this.getProject(projectId);
       if (fetchError) return { data: null, error: fetchError };
@@ -290,6 +397,27 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async addCustomObject(projectId, objectData) {
     try {
+      // Server-side validation
+      const validation = customObjectSchema.safeParse(objectData);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -320,6 +448,18 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async updateCustomObject(projectId, objectId, updates) {
     try {
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -356,6 +496,18 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async deleteCustomObject(projectId, objectId) {
     try {
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -393,6 +545,27 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async addField(projectId, objectId, fieldData) {
     try {
+      // Server-side validation
+      const validation = customFieldSchema.safeParse(fieldData);
+      if (!validation.success) {
+        return {
+          data: null,
+          error: new Error(`Validation failed: ${validation.error.message}`),
+        };
+      }
+
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -432,6 +605,18 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async updateField(projectId, objectId, fieldId, updates) {
     try {
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -479,6 +664,18 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async deleteField(projectId, objectId, fieldId) {
     try {
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
@@ -521,6 +718,18 @@ class SupabaseAdapter extends IStorageAdapter {
    */
   async duplicateCustomObject(projectId, objectId) {
     try {
+      // Authorization check
+      const { userId, error: authError } = await this._getCurrentUserId();
+      if (authError) return { data: null, error: authError };
+
+      const hasPermission = await this._checkProjectPermission(userId, projectId, 'editor');
+      if (!hasPermission) {
+        return {
+          data: null,
+          error: new Error('Unauthorized: You do not have permission to modify this project'),
+        };
+      }
+
       const { data: project, error } = await this.getProject(projectId);
       if (error) return { data: null, error };
 
