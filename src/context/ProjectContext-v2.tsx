@@ -802,6 +802,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return { data: null, error: errorMessage };
       }
 
+      // Check tag name uniqueness (case-insensitive)
+      const normalizedName = tagData.name.toLowerCase();
+      const duplicateCustom = (state.tags.custom || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+      const duplicateLibrary = (state.tags.library || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+
+      if (duplicateCustom || duplicateLibrary) {
+        return {
+          data: null,
+          error: `Tag name "${tagData.name}" already exists. Please choose a different name.`,
+        };
+      }
+
       // Optimistic update
       dispatch({ type: 'ADD_TAG', payload: tagData });
 
@@ -853,6 +869,24 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
       if (!original) {
         return { data: null, error: 'Tag not found' };
+      }
+
+      // Check tag name uniqueness if name changed (case-insensitive)
+      if (tagData.name.toLowerCase() !== original.name.toLowerCase()) {
+        const normalizedName = tagData.name.toLowerCase();
+        const duplicateCustom = (state.tags.custom || []).find(
+          (tag) => tag.id !== tagData.id && tag.name.toLowerCase() === normalizedName
+        );
+        const duplicateLibrary = (state.tags.library || []).find(
+          (tag) => tag.name.toLowerCase() === normalizedName
+        );
+
+        if (duplicateCustom || duplicateLibrary) {
+          return {
+            data: null,
+            error: `Tag name "${tagData.name}" already exists. Please choose a different name.`,
+          };
+        }
       }
 
       // Optimistic update
@@ -954,6 +988,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return { data: null, error: errorMessage };
+      }
+
+      // Check tag name uniqueness (case-insensitive)
+      const normalizedName = tagData.name.toLowerCase();
+      const duplicateCustom = (state.tags.custom || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+      const duplicateLibrary = (state.tags.library || []).find(
+        (tag) => tag.name.toLowerCase() === normalizedName
+      );
+
+      if (duplicateCustom || duplicateLibrary) {
+        return {
+          data: null,
+          error: `Tag name "${tagData.name}" already exists. Please choose a different name.`,
+        };
       }
 
       // Optimistic update
