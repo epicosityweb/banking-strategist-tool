@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useProject } from '../../../context/ProjectContext-v2';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../../../utils/idGenerator';
 import { Tag, TagCategory, TagBehavior, QualificationRules } from '../../../types/tag';
 import RuleBuilder from './RuleBuilder';
 
@@ -134,7 +134,7 @@ export default function TagModal({ isOpen, onClose, tag = null, mode = 'create' 
 
     try {
       const tagData: Tag = {
-        id: mode === 'edit' && tag ? tag.id : uuidv4(),
+        id: mode === 'edit' && tag ? tag.id : generateId(),
         ...formData,
         isCustom: true,
         qualificationRules,
