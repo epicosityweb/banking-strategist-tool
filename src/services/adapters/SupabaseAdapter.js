@@ -23,8 +23,8 @@ const storageTagSchema = z.object({
   qualificationRules: qualificationRulesSchema,
   dependencies: z.array(z.string()).optional().default([]),
   isCustom: z.boolean().default(false),
-  createdAt: z.union([z.date(), z.string()]).optional(), // Accept Date or ISO string
-  updatedAt: z.union([z.date(), z.string()]).optional(), // Accept Date or ISO string
+  createdAt: z.union([z.date(), z.string().datetime()]).optional(), // Accept Date or ISO 8601 string
+  updatedAt: z.union([z.date(), z.string().datetime()]).optional(), // Accept Date or ISO 8601 string
 });
 
 // Project schema for validation
@@ -74,9 +74,18 @@ const projectSchema = z.object({
  * - updated_at: TIMESTAMPTZ
  */
 class SupabaseAdapter extends IStorageAdapter {
-  constructor(supabaseClient = supabase) {
+  constructor(supabaseClient = supabase, errorTracker = null) {
     super();
     this.supabase = supabaseClient;
+
+    // Inject error tracker as dependency (Dependency Inversion Principle)
+    // Falls back to no-op when not provided
+    this.errorTracker = errorTracker || {
+      captureException: () => {
+        // No-op fallback when error tracker not configured
+        // Allows code to work without throwing errors
+      }
+    };
 
     if (!this.supabase) {
       throw new Error(
@@ -126,6 +135,60 @@ class SupabaseAdapter extends IStorageAdapter {
     }
 
     return { userId: user.id, error: null };
+  }
+
+  /**
+   * Validate tag array and filter out invalid tags with warnings
+   * Provides defensive validation when loading tags from database
+   * @private
+   * @param {Array} tags - Tags to validate
+   * @param {string} arrayName - 'library' or 'custom' for error context
+   * @returns {Array} Valid tags only
+   */
+  _validateTagArray(tags, arrayName) {
+    if (!Array.isArray(tags)) {
+      return [];
+    }
+
+    return tags.filter((tag, index) => {
+      const validation = storageTagSchema.safeParse(tag);
+
+      if (!validation.success) {
+        // Environment-specific logging to prevent information disclosure
+        if (process.env.NODE_ENV === 'development') {
+          // Development: detailed errors for debugging
+          console.warn(
+            `Invalid ${arrayName} tag (id: ${tag?.id || 'unknown'}):`,
+            validation.error.errors
+          );
+        } else {
+          // Production: generic message only
+          console.warn(
+            `Data validation issue detected. Tag will be skipped.`
+          );
+        }
+
+        // Log to error tracking service (injected dependency)
+        // Sanitized: Only non-sensitive metadata
+        this.errorTracker.captureException(
+          new Error(`Invalid tag schema in ${arrayName}`),
+          {
+            extra: {
+              // Safe metadata only
+              arrayName,
+              errorCount: validation.error.errors?.length || 0,
+              errorFields: validation.error.errors?.map(e => e.path.join('.')).slice(0, 5) || [],
+              // DO NOT INCLUDE: tagId, tagName, or full validation.error.format()
+            },
+            fingerprint: ['invalid-tag-schema', arrayName],
+          }
+        );
+
+        return false; // Exclude invalid tag from results
+      }
+
+      return true; // Include valid tag
+    });
   }
 
   /**
@@ -207,7 +270,10 @@ class SupabaseAdapter extends IStorageAdapter {
         status: row.status,
         clientProfile: row.data?.clientProfile || {},
         dataModel: row.data?.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
-        tags: row.data?.tags || { library: [], custom: [] },
+        tags: {
+          library: this._validateTagArray(row.data?.tags?.library || [], 'library'),
+          custom: this._validateTagArray(row.data?.tags?.custom || [], 'custom'),
+        },
         journeys: row.data?.journeys || [],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -244,7 +310,10 @@ class SupabaseAdapter extends IStorageAdapter {
         status: data.status,
         clientProfile: data.data?.clientProfile || {},
         dataModel: data.data?.dataModel || { objects: [], fields: [], mappings: [], associations: [] },
-        tags: data.data?.tags || { library: [], custom: [] },
+        tags: {
+          library: this._validateTagArray(data.data?.tags?.library || [], 'library'),
+          custom: this._validateTagArray(data.data?.tags?.custom || [], 'custom'),
+        },
         journeys: data.data?.journeys || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,

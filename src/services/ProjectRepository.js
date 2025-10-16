@@ -1,6 +1,7 @@
 import LocalStorageAdapter from './adapters/LocalStorageAdapter';
 import SupabaseAdapter from './adapters/SupabaseAdapter';
 import validationService from './ValidationService';
+import errorTracker from './errorTracking';
 
 /**
  * Project Repository
@@ -330,13 +331,17 @@ class ProjectRepository {
  *
  * Creates the appropriate storage adapter based on configuration.
  * Defaults to localStorage for backward compatibility.
+ *
+ * Note: Injects errorTracker into SupabaseAdapter for testability
+ * and separation of concerns (Dependency Inversion Principle).
  */
 function createAdapter() {
   const adapterType = import.meta.env.VITE_STORAGE_ADAPTER || 'localStorage';
 
   switch (adapterType.toLowerCase()) {
     case 'supabase':
-      return new SupabaseAdapter();
+      // Inject error tracker dependency for testability
+      return new SupabaseAdapter(undefined, errorTracker);
     case 'localstorage':
     default:
       return new LocalStorageAdapter();
