@@ -140,6 +140,7 @@ class SupabaseAdapter extends IStorageAdapter {
   /**
    * Validate tag array and filter out invalid tags with warnings
    * Provides defensive validation when loading tags from database
+   * Issue #29: Now collects corrupt tags and emits event for user notification
    * @private
    * @param {Array} tags - Tags to validate
    * @param {string} arrayName - 'library' or 'custom' for error context
@@ -150,6 +151,77 @@ class SupabaseAdapter extends IStorageAdapter {
       return [];
     }
 
+    const validTags = [];
+    const corruptTags = [];
+
+    tags.forEach((tag, index) => {
+      const validation = storageTagSchema.safeParse(tag);
+
+      if (!validation.success) {
+        // Collect corrupt tag for event emission (Issue #29)
+        corruptTags.push({
+          tag,
+          errors: validation.error.format(),
+        });
+
+        // Environment-specific logging to prevent information disclosure
+        if (process.env.NODE_ENV === 'development') {
+          // Development: detailed errors for debugging
+          console.warn(
+            `Invalid ${arrayName} tag (id: ${tag?.id || 'unknown'}):`,
+            validation.error.errors
+          );
+        } else {
+          // Production: generic message only
+          console.warn(
+            `Data validation issue detected. Tag will be skipped.`
+          );
+        }
+
+        // Log to error tracking service (injected dependency)
+        // Sanitized: Only non-sensitive metadata
+        this.errorTracker.captureException(
+          new Error(`Invalid tag schema in ${arrayName}`),
+          {
+            extra: {
+              // Safe metadata only
+              arrayName,
+              errorCount: validation.error.errors?.length || 0,
+              errorFields: validation.error.errors?.map(e => e.path.join('.')).slice(0, 5) || [],
+              // DO NOT INCLUDE: tagId, tagName, or full validation.error.format()
+            },
+            fingerprint: ['invalid-tag-schema', arrayName],
+          }
+        );
+      } else {
+        validTags.push(tag);
+      }
+    });
+
+    // Emit event if corrupt data detected (Issue #29)
+    if (corruptTags.length > 0) {
+      window.dispatchEvent(
+        new CustomEvent('data-corruption-detected', {
+          detail: {
+            type: 'corrupt_tags',
+            arrayName,
+            count: corruptTags.length,
+            corruptTags,
+            severity: 'critical',
+          },
+        })
+      );
+    }
+
+    return validTags;
+  }
+
+  /**
+   * Legacy filter method for backward compatibility
+   * @deprecated Use _validateTagArray directly
+   * @private
+   */
+  _filterValidTags(tags, arrayName) {
     return tags.filter((tag, index) => {
       const validation = storageTagSchema.safeParse(tag);
 
