@@ -211,6 +211,32 @@ VITE_SUPABASE_ANON_KEY=[your-anon-key]
 
 📊 **For detailed milestone tracking, see:** [PROJECT-STATUS.md](PROJECT-STATUS.md)
 
+### Current Workflow Phase
+
+**Workflow Cycle Position:** PLAN → **DELEGATE**
+
+**Just Completed:**
+- ✅ PR #28: Security hardening & test coverage (MERGED October 16, 2025)
+  - Security hardening (Issue #032): Environment-specific logging, GDPR/CCPA compliant
+  - Dependency injection (Issue #033): ErrorTrackingService with testable architecture
+  - Test coverage (Issue #034): 24/24 tests passing, ~95% coverage
+- ✅ Comprehensive multi-agent code review (8 specialized agents)
+- ✅ Live testing in dev environment (all functional, zero console errors)
+- ✅ All Phase 2 P0 blockers resolved
+
+**Current Work:**
+- 🏗️ Issue #29: Silent Data Loss Prevention (PLAN phase)
+- Planning approach for auto-save blocking and user notification
+- Estimated: 6-8 hours (Phases 1-3) or 5-7 hours (Phases 1-2)
+
+**Next Steps:**
+1. **Option A (Compounding Workflow):** Use `/workflows/work https://github.com/epicosityweb/banking-orchestration-framework-explainer/issues/29` to systematically implement
+2. **Option B (Manual):** Create feature branch `issue-29-data-loss-prevention` + worktree, implement phases incrementally
+
+**Recommendation:** Option C from planning (Phases 1 + 2) - Stops data loss + informs users, can ship this week
+
+---
+
 ### Epic Progress
 
 **Epic 4: Tag Library & Journey Designer** - 🏗️ IN PROGRESS (45% Complete)
@@ -218,16 +244,16 @@ VITE_SUPABASE_ANON_KEY=[your-anon-key]
 - ✅ Phase 2: Tag Library Browser (22 hours)
 - ✅ Phase 3: Tag Management (30 hours)
 - ✅ TypeScript Migration (complete, 0 errors)
-- 📋 Phase 4: Property Rule Builder (40 hours) - **READY TO START**
+- ✅ PR #28: Validation & Security Hardening (MERGED)
+- 🏗️ Issue #29: Data Loss Prevention (IN PLANNING)
+- 📋 Phase 4: Property Rule Builder (40 hours) - **NEXT AFTER #29**
 - 📋 Phase 5: Activity, Association & Score Rules (39 hours)
 - 📋 Phase 6: Rule Testing & Visualization (30 hours)
 - 📋 Phase 7: Journey Designer (25 hours)
 
-**Workflow Phase:** ASSESS → **CODIFY** (TypeScript migration reviewed and merged)
-
 **What's Complete:**
 - ✅ Core React application (9+ components)
-- ✅ Service layer architecture (adapter pattern)
+- ✅ Service layer architecture (adapter pattern + error tracking)
 - ✅ Supabase authentication system
 - ✅ Single-tenant database schema
 - ✅ All CRUD operations working
@@ -235,17 +261,8 @@ VITE_SUPABASE_ANON_KEY=[your-anon-key]
 - ✅ Tag library with 30 pre-built banking tags
 - ✅ Tag CRUD with validation and dependency checking
 - ✅ TypeScript migration (5 components, 940-line context)
-- ✅ Code review system (B+ rating, 85/100)
-
-**Currently Working On:**
-- Ready to begin Phase 4: Property Rule Builder
-
-**Next Milestone:**
-- Phase 4: Property Rule Builder (visual rule builder with operator selection)
-
-**Recommended Next Step:**
-Start Phase 4 implementation. The planning is complete in GitHub Issue #3,
-so you can use `/workflows/work` to begin systematic implementation.
+- ✅ Security hardening (environment-specific logging, sanitized Sentry)
+- ✅ Comprehensive test coverage (24/24 tests passing)
 
 ---
 
@@ -293,9 +310,219 @@ so you can use `/workflows/work` to begin systematic implementation.
 
 ---
 
+## Todo System
+
+This project uses the Compounding Engineering todo system for tracking work items from code reviews and planning.
+
+### Todo Directory Structure
+```
+todos/
+├── 032-done-p0-information-disclosure-logging.md    # Completed
+├── 033-done-p0-untestable-global-dependencies.md   # Completed
+├── 034-done-p0-missing-test-coverage.md            # Completed
+└── README.md (if exists)
+```
+
+### Status Flow
+```
+pending → ready → in_progress → done
+```
+
+### Creating Todos
+
+Todos are typically created through the `/workflows/triage` command after code reviews, but can also be created manually:
+
+```bash
+# After comprehensive review
+/workflows/review [PR-number]
+
+# Triage findings into todos
+/workflows/triage
+
+# Resolve todos (analyzes dependencies, runs in parallel where possible)
+/workflows/resolve_todo_parallel
+```
+
+### Manual Todo Creation
+
+For urgent issues or planning, create todos directly:
+
+```bash
+cp todos/000-TEMPLATE.md todos/042-ready-p1-fix-critical-bug.md
+# Edit file with issue details
+```
+
+### PR #28 Example
+
+PR #28 demonstrated the full todo workflow:
+
+1. **Review:** 8 specialized agents identified 4 P0 blockers
+   - TypeScript Reviewer (Kieran)
+   - Git History Analyzer
+   - Pattern Recognition Specialist
+   - Architecture Strategist
+   - Security Sentinel
+   - Performance Oracle
+   - Data Integrity Guardian
+   - Code Simplicity Reviewer
+
+2. **Triage:** Created 3 todo files (032, 033, 034) + 1 GitHub issue (029)
+   - Issue #032: Information disclosure (CVSS 7.5) - Environment-specific logging
+   - Issue #033: Untestable dependencies - Dependency injection pattern
+   - Issue #034: Missing test coverage - 24 comprehensive tests
+   - Issue #29: Silent data loss (follow-up PR)
+
+3. **Resolve:** Task agents fixed all issues in parallel
+   - Security hardening + dependency injection (parallel execution)
+   - Comprehensive test suite (577 lines)
+
+4. **Result:** Security hardened, fully tested, merged
+   - All acceptance criteria met
+   - Zero breaking changes
+   - Live testing verified
+
+See completed todos in `todos/` directory for reference patterns.
+
+---
+
 ## Recent Work
 
 📋 **For complete implementation details, see:** [.github/ISSUE-002-supabase-single-tenant-complete.md](../.github/ISSUE-002-supabase-single-tenant-complete.md)
+
+### PR #28: Compounding Workflow in Action (October 15-16, 2025)
+
+**Workflow Cycle Demonstrated:**
+
+**PLAN:**
+- Initial issue: Add read-time validation for corrupt tags
+- Acceptance criteria: Graceful error handling, Sentry integration
+- Created GitHub PR #28
+
+**DELEGATE (Phase 1):**
+- Implemented `_validateTagArray()` method (53 lines)
+- Added date validation strengthening (`z.string().datetime()`)
+- Environment-specific console logging
+- Sentry integration for error tracking
+- Created PR #28 with initial validation logic
+
+**ASSESS:**
+- Multi-agent comprehensive review (8 specialized agents)
+- Review identified 4 P0 blockers preventing safe merge:
+  - **Issue #032:** Information disclosure (CVSS 7.5) - PII in logs/Sentry
+  - **Issue #033:** Untestable global dependencies - Direct `window.Sentry` access
+  - **Issue #034:** Missing test coverage (0%) - 53 lines untested
+  - **Issue #29:** Silent data loss risk - Auto-save deletes corrupt tags
+
+**CODIFY:**
+- Created 3 todo files for immediate blockers (032, 033, 034)
+- Created GitHub Issue #29 for follow-up work (data loss prevention)
+- Resolved todos in 2 parallel Task agents:
+  - **Security Agent:** Environment-specific logging + sanitized Sentry payloads
+  - **Dependency Injection Agent:** ErrorTrackingService + constructor injection
+  - **Test Coverage Agent:** 24 comprehensive tests (577 lines, ~95% coverage)
+
+**COMPLETE:**
+- All Phase 2 fixes committed (0b3b93b):
+  - [SupabaseAdapter.js](strategist-tool/src/services/adapters/SupabaseAdapter.js) - Security + DI
+  - [errorTracking.js](strategist-tool/src/services/errorTracking.js) - 92 lines (NEW)
+  - [SupabaseAdapter.test.js](strategist-tool/src/services/adapters/__tests__/SupabaseAdapter.test.js) - 577 lines (NEW)
+  - [ProjectRepository.js](strategist-tool/src/services/ProjectRepository.js) - Error tracker injection
+- PR #28 merged to main (October 16, 2025)
+- Live testing verified in dev environment (localhost:5175)
+- Zero console errors, all functionality working
+- 29 tags loaded successfully from database
+
+**Compounding Effect:**
+1. **ErrorTrackingService Pattern** - Now reusable across all adapters/services
+2. **Test Suite Structure** - Template for future validation tests
+3. **Security Patterns** - Environment-specific logging documented for reviewer agents
+4. **Dependency Injection** - All future adapters will use this testable pattern
+5. **Code Review Process** - 8-agent comprehensive review now standard
+
+**Metrics:**
+- **Time Investment:** ~12 hours total (3h Phase 1 + 9h Phase 2)
+- **Code Changes:** +771 additions, -7 deletions
+- **Test Coverage:** 0% → 95% for validation logic
+- **Security Impact:** CVSS 7.5 vulnerability eliminated
+- **Next Similar Feature:** Estimated 50% faster due to patterns established
+
+**Result:** Next validation feature will be significantly faster:
+- ErrorTrackingService already exists (reuse, don't rebuild)
+- Test patterns established (copy/adapt, don't design from scratch)
+- Security checklist documented (prevent issues, don't fix later)
+- Review agents improved (catch more issues, earlier)
+
+---
+
+### Next Feature: Issue #29 (Silent Data Loss Prevention)
+
+**Workflow Phase:** PLAN → **DELEGATE**
+
+**GitHub Issue:** https://github.com/epicosityweb/banking-orchestration-framework-explainer/issues/29
+
+**Planning Complete:**
+- Detailed specification created with 3 implementation phases
+- Root cause identified: Validation filtering + Auto-save = Permanent data loss
+- Estimated effort: 6-8 hours total (or 5-7 hours for Phases 1-2)
+
+**The Problem:**
+```
+T+0s:   User loads project → Corrupt tags filtered out silently
+T+30s:  Auto-save triggers → Filtered data saved to database
+T+30s:  💥 CORRUPT TAGS PERMANENTLY DELETED
+```
+
+**Recommended Approach:**
+
+**Option C (Balanced - Recommended):** Phases 1 + 2 (5-7 hours)
+- ✅ Phase 1: Auto-save blocking (2-3h) - Stops data loss immediately
+- ✅ Phase 2: User notification (3-4h) - Informs users what's happening
+- ⏳ Phase 3: Recovery system (follow-up PR) - Nice-to-have for rare cases
+
+**Implementation Options:**
+
+**Option A: Use Compounding Workflow (Recommended)**
+```bash
+/workflows/work https://github.com/epicosityweb/banking-orchestration-framework-explainer/issues/29
+```
+This will:
+- Create feature branch + worktree automatically
+- Break down work into todos based on phases
+- Execute each phase systematically with tests
+- Create PR when complete
+
+**Option B: Manual Implementation**
+```bash
+# Create worktree manually
+git worktree add -b issue-29-data-loss-prevention .worktrees/issue-29
+
+# Implement phases incrementally:
+# Phase 1: Modify _validateTagArray() to return corruption metadata
+# Phase 2: Update ProjectContext-v2 to block auto-save when corrupt data detected
+# Phase 3: Create CorruptDataBanner.tsx component for user notification
+
+# Create PR manually
+gh pr create --base main --head issue-29-data-loss-prevention
+```
+
+**Files to Modify:**
+- `strategist-tool/src/services/adapters/SupabaseAdapter.js` - Return corruption metadata
+- `strategist-tool/src/context/ProjectContext-v2.tsx` - Block auto-save logic
+- `strategist-tool/src/components/ui/CorruptDataBanner.tsx` - User notification (NEW)
+
+**Success Criteria:**
+- [ ] Auto-save disabled when corrupt data detected
+- [ ] User receives notification banner explaining the issue
+- [ ] Valid tags still display and function normally
+- [ ] Tests verify auto-save blocking behavior
+- [ ] No data loss occurs (corrupt tags preserved in database)
+
+**After Completion:**
+- Will advance to Phase 4: Property Rule Builder (Epic 4 continuation)
+- ErrorTrackingService pattern will be reused (compounding effect working)
+- Corruption detection patterns now established for future use
+
+---
 
 ### Phase 5: Single-Tenant Supabase Migration (October 14, 2025)
 
@@ -322,6 +549,49 @@ SELECT id, name, owner_id FROM implementations;
 ---
 
 ## Key Learnings
+
+### October 15, 2025: JavaScript/TypeScript Architecture Pattern
+
+**Context:** During code review of PR #27, the TypeScript reviewer flagged SupabaseAdapter.js as a "type safety violation" for being JavaScript instead of TypeScript.
+
+**Investigation:** Reviewed project history (PR #24, PR #26, commit 1b8de47) and discovered this is an **intentional architectural pattern** established in Phase 1.
+
+**Architecture Pattern:**
+```
+Service/Adapter Layer: JavaScript (.js)
+├── IStorageAdapter.js (interface)
+├── LocalStorageAdapter.js (implementation)
+├── SupabaseAdapter.js (implementation)
+└── ProjectRepository.js + .d.ts (typed JavaScript)
+
+Validation/Schema Layer: TypeScript (.ts)
+├── ValidationService.ts
+├── tagSchema.ts
+└── objectSchema.ts
+
+Current Ratio: 42 JS files : 21 TS files (2:1 by design)
+```
+
+**Why This Works:**
+
+1. **Runtime Validation via Zod:** Adapters need runtime type safety for database data, which Zod provides through `.safeParse()` - catches errors JavaScript → Supabase → JavaScript round-trip
+2. **Runtime Flexibility:** Adapters handle dynamic Supabase client interactions that benefit from JavaScript's flexibility
+3. **Type Definitions Available:** `.d.ts` files provide compile-time safety where needed (e.g., ProjectRepository)
+4. **Proven Stability:**
+   - PR #24: Successfully maintained `.js` pattern while fixing schema alignment
+   - PR #26: Resolved Zod 4.x → 3.x stability in mixed JS/TS environment
+   - No type-related production issues in 3 months
+
+**Historical Evidence:**
+- **Phase 1 (1b8de47):** All adapters created as `.js` files
+- **42 JS files:** Service layer, adapters, contexts, tests
+- **21 TS files:** Validation, schemas, type definitions
+
+**Lesson:** Mixed JS/TS codebases are valid when each language serves its purpose. For adapters handling database round-trips, JavaScript + Zod validation provides better runtime error detection than TypeScript alone. The 2:1 JS:TS ratio reflects this codebase's pragmatic approach: TypeScript for compile-time contracts, JavaScript for runtime flexibility.
+
+**Takeaway for Code Reviews:** Don't assume `.js` files are oversights. Check project history and established patterns before flagging architectural "violations." In this case, the JS/TS mix is a deliberate, stable pattern that has proven effective across multiple PRs.
+
+---
 
 ### October 14, 2025: Single-Tenant Architecture Decision
 
