@@ -1,6 +1,6 @@
 # Interactive Strategist Tool - Development Guide
 
-**Last Updated:** October 15, 2025
+**Last Updated:** October 16, 2025
 **Status:** ✅ Production Ready - Single-tenant Supabase architecture complete
 **Primary Maintainer:** Epicosity Team
 
@@ -248,6 +248,95 @@ Required in `strategist-tool/.env.local`:
 VITE_SUPABASE_URL=https://lmuejkfvsjscmboaayds.supabase.co
 VITE_SUPABASE_ANON_KEY=[your-anon-key]
 ```
+
+### GitHub Integration
+
+**Status:** ✅ **Fully Working** (Fixed October 16, 2025)
+
+This project now has **two working methods** for GitHub integration:
+
+#### Method 1: GitHub MCP (Recommended for AI Agents)
+
+**Configuration:** Official Docker-based GitHub MCP server (as of October 16, 2025)
+
+**MCP Tools Available:**
+```javascript
+// All GitHub MCP tools now work with this private repository:
+mcp__github__get_file_contents()        // ✅ Read files from repo
+mcp__github__list_commits()             // ✅ View commit history
+mcp__github__create_issue()             // ✅ Create issues
+mcp__github__create_pull_request()      // ✅ Create PRs
+mcp__github__search_repositories()      // ✅ Search GitHub
+mcp__github__list_pull_requests()       // ✅ List PRs
+// ... and all other GitHub MCP tools
+```
+
+**Example Usage:**
+```javascript
+// Read a file from the repository
+mcp__github__get_file_contents({
+  owner: "epicosityweb",
+  repo: "banking-orchestration-framework-explainer",
+  path: "strategist-tool/src/App.jsx"
+})
+
+// Create an issue
+mcp__github__create_issue({
+  owner: "epicosityweb",
+  repo: "banking-orchestration-framework-explainer",
+  title: "[strategist-tool] Add new feature",
+  body: "Detailed description..."
+})
+```
+
+**What Was Fixed:**
+- **October 16, 2025:** Migrated from deprecated `@modelcontextprotocol/server-github` to official `ghcr.io/github/github-mcp-server`
+- Old version had known bug preventing access to private Enterprise Internal repositories
+- New Docker-based version works perfectly with private repos
+
+#### Method 2: GitHub CLI (`gh`) (Alternative)
+
+The `gh` CLI is also available as a reliable alternative:
+
+```bash
+# Create an issue
+cd "/Users/Kchris/Documents/Epicosity/Banking Journey Orchestration Framework"
+gh issue create \
+  --title "[strategist-tool] Issue Title" \
+  --body-file /path/to/issue-content.md
+
+# Create a pull request
+gh pr create \
+  --base main \
+  --head feature-branch \
+  --title "PR Title" \
+  --body "PR description"
+
+# List issues
+gh issue list --state open
+
+# View PR status
+gh pr status
+```
+
+**When to Use Each Method:**
+
+**Use GitHub MCP when:**
+- AI agents need programmatic access to repository data
+- Automating issue/PR creation from code reviews
+- Reading files or searching code during implementation
+- Working within Claude Code workflow commands
+
+**Use GitHub CLI when:**
+- Quick manual operations from terminal
+- Debugging or verifying MCP operations
+- User prefers command-line interface
+- Need to test authentication/permissions
+
+**Authentication Requirements:**
+- Token must have scopes: `repo`, `read:enterprise`, `read:org`, `workflow`
+- User must be added as collaborator to repository
+- For Enterprise Internal repos, org membership alone is not sufficient
 
 ---
 
@@ -713,6 +802,137 @@ SELECT id, name, owner_id FROM implementations;
 ---
 
 ## Key Learnings
+
+### October 16, 2025: GitHub MCP Configuration - Per-Project Settings
+
+**Context:** GitHub MCP was returning 404 errors when attempting to access the private repository `epicosityweb/banking-orchestration-framework-explainer`, despite the GitHub CLI (`gh`) working perfectly with the same credentials.
+
+**Root Cause Discovery:**
+
+The issue was NOT with the global Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`). The root cause was **per-project MCP configuration** stored in `~/.claude.json`.
+
+**Key Finding:** Claude Code (VS Code extension) maintains separate MCP server configurations for each project, stored in the `projects` object within `~/.claude.json`. These project-specific configs override global settings.
+
+**The Problem:**
+```json
+// ~/.claude.json (per-project config)
+{
+  "projects": {
+    "/Users/Kchris/Documents/Epicosity/Banking Journey Orchestration Framework": {
+      "mcpServers": {
+        "github": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-github"],
+          // ❌ OLD deprecated version with known private repo bug
+        }
+      }
+    }
+  }
+}
+```
+
+**Diagnostic Process:**
+
+1. **Process Investigation:** Ran `ps aux | grep github` and found old deprecated `@modelcontextprotocol/server-github` processes running alongside Docker processes
+2. **Parent Process Analysis:** Traced parent PID to Claude Code extension binary at `/Users/Kchris/.cursor/extensions/anthropic.claude-code-*`
+3. **Configuration Hunt:** Searched for MCP config files, discovered `~/.claude.json` (7MB file with project-specific configs)
+4. **Config Inspection:** Found project using old deprecated GitHub MCP despite global config being correct
+
+**The Solution:**
+```json
+// Updated ~/.claude.json (per-project config)
+{
+  "projects": {
+    "/Users/Kchris/Documents/Epicosity/Banking Journey Orchestration Framework": {
+      "mcpServers": {
+        "github": {
+          "type": "stdio",
+          "command": "docker",
+          "args": [
+            "run", "-i", "--rm", "-e",
+            "GITHUB_PERSONAL_ACCESS_TOKEN",
+            "ghcr.io/github/github-mcp-server"
+          ],
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+          }
+          // ✅ NEW official Docker-based GitHub MCP
+        }
+      }
+    }
+  }
+}
+```
+
+**Cleanup Steps Performed:**
+1. Killed all old deprecated GitHub MCP processes (3 instances)
+2. Killed competing Docker GitHub MCP processes (2 instances)
+3. Removed npx cache directory `/Users/Kchris/.npm/_npx/3dfbf5a9eea4a1b3/`
+4. Killed all GitHub MCP Docker containers
+5. Updated per-project config in `~/.claude.json` via Python script
+6. Restarted Cursor/Claude Code
+
+**Results:**
+✅ **COMPLETE SUCCESS** - All GitHub MCP tools now work with private repositories:
+- `mcp__github__get_file_contents()` - Successfully listed repository files
+- `mcp__github__list_commits()` - Can view commit history
+- `mcp__github__create_issue()` - Can create issues
+- All other GitHub MCP tools functional
+
+**Lessons Learned:**
+
+1. **Check per-project configs first** - When debugging MCP issues in Claude Code, check `~/.claude.json` for project-specific overrides before assuming global config is the source
+2. **Process lineage reveals config source** - Using `ps` with parent PID tracing (`ps -p <pid> -o ppid=`) can reveal which config file spawned a process
+3. **Multiple config layers exist** - Claude Code has at least 3 config layers:
+   - Global: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Per-project: `~/.claude.json` (projects object)
+   - Cursor-specific: `~/.cursor/mcp.json`
+4. **Old MCP versions have known bugs** - The deprecated `@modelcontextprotocol/server-github` has a known bug preventing access to private Enterprise Internal repositories
+5. **Docker-based MCP is production-ready** - The official `ghcr.io/github/github-mcp-server` works perfectly with private repos
+
+**Configuration Files to Check (in order):**
+```bash
+# 1. Per-project config (MOST LIKELY SOURCE)
+~/.claude.json
+
+# 2. Global Claude Desktop config
+~/Library/Application Support/Claude/claude_desktop_config.json
+
+# 3. Cursor/Cline config (if using those editors)
+~/.cursor/mcp.json
+```
+
+**Diagnostic Commands:**
+```bash
+# Find which GitHub MCP processes are running
+ps aux | grep -E "(github|docker.*github-mcp)" | grep -v grep
+
+# Trace process parent to find config source
+ps -p <PID> -o ppid= | xargs ps -p
+
+# Check per-project MCP config
+grep -B 5 -A 50 '"$(pwd)"' ~/.claude.json | grep -A 30 mcpServers
+
+# Verify Docker-based MCP is running
+docker ps | grep github-mcp-server
+```
+
+**Red Flags That Indicate Per-Project Config Issue:**
+- ❌ Global config is correct but MCP still fails
+- ❌ Old deprecated processes spawn after restart despite config changes
+- ❌ `npx` processes running when config specifies Docker
+- ❌ Multiple competing MCP implementations running simultaneously
+
+**Takeaways:**
+- **ALWAYS check `~/.claude.json` for per-project overrides** when debugging Claude Code MCP issues
+- Use process investigation (ps + parent PID) to trace config source
+- Keep npx cache clean when switching MCP versions
+- Official Docker-based GitHub MCP is the recommended approach for private repositories
+- Document project-specific MCP configs in CLAUDE.md for future maintainers
+
+**Issue Reference:** GitHub MCP 404 errors with private Enterprise Internal repositories - Fixed October 16, 2025
+
+---
 
 ### October 15, 2025: JavaScript/TypeScript Architecture Pattern
 
