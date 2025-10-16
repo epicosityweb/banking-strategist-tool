@@ -172,6 +172,11 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
           summary += ` in last ${condition.timeframe} days`;
         }
 
+        // Add filter count if present
+        if (condition.filters && condition.filters.length > 0) {
+          summary += ` [${condition.filters.length} filter${condition.filters.length > 1 ? 's' : ''}]`;
+        }
+
         return summary;
       }
 

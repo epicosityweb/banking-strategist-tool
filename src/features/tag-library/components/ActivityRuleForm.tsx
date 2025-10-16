@@ -13,7 +13,10 @@
  */
 
 import { useState, useEffect, useRef, memo } from 'react';
-import type { ActivityRuleCondition } from '../../../types/tag';
+import type {
+  ActivityRuleCondition,
+  PropertyRuleCondition,
+} from '../../../types/tag';
 import {
   HUBSPOT_STANDARD_EVENTS,
   EVENT_CATEGORIES,
@@ -21,6 +24,7 @@ import {
   getEventDisplayName,
   validateCustomEventFormat,
 } from '../../../data/hubspotEventTypes';
+import { generateId } from '../../../utils/idGenerator';
 
 export interface ActivityRuleFormProps {
   /** Current activity rule condition being edited */
@@ -102,6 +106,9 @@ function ActivityRuleForm({
     condition?.timeframe
   );
   const [showCustomTimeframe, setShowCustomTimeframe] = useState(false);
+  const [eventFilters, setEventFilters] = useState<PropertyRuleCondition[]>(
+    condition?.filters || []
+  );
 
   // Track mounted state to prevent updates after unmount
   const isMountedRef = useRef<boolean>(true);
@@ -119,6 +126,7 @@ function ActivityRuleForm({
           ? { operator, value: countValue }
           : {}),
         ...(timeframe ? { timeframe } : {}),
+        ...(eventFilters.length > 0 ? { filters: eventFilters } : {}),
       };
       onChange(newCondition);
     }
@@ -127,7 +135,15 @@ function ActivityRuleForm({
     return () => {
       isMountedRef.current = false;
     };
-  }, [selectedEventType, occurrence, operator, countValue, timeframe, onChange]);
+  }, [
+    selectedEventType,
+    occurrence,
+    operator,
+    countValue,
+    timeframe,
+    eventFilters,
+    onChange,
+  ]);
 
   // Determine if operator and value are needed
   const needsOperatorAndValue = (): boolean => {
@@ -166,6 +182,34 @@ function ActivityRuleForm({
       setTimeframe(value);
       setShowCustomTimeframe(false);
     }
+  };
+
+  // Handle adding a new event filter
+  const handleAddFilter = (): void => {
+    const newFilter: PropertyRuleCondition = {
+      id: generateId(),
+      object: selectedEventType, // Event type as the object
+      field: '',
+      operator: 'equals',
+      value: '',
+    };
+    setEventFilters([...eventFilters, newFilter]);
+  };
+
+  // Handle updating a specific filter
+  const handleFilterChange = (
+    index: number,
+    updated: PropertyRuleCondition
+  ): void => {
+    const newFilters = [...eventFilters];
+    newFilters[index] = updated;
+    setEventFilters(newFilters);
+  };
+
+  // Handle removing a filter
+  const handleRemoveFilter = (index: number): void => {
+    const newFilters = eventFilters.filter((_, i) => i !== index);
+    setEventFilters(newFilters);
   };
 
   // Render event type dropdown with categories
@@ -362,6 +406,138 @@ function ActivityRuleForm({
     );
   };
 
+  // Render event property filters
+  const renderEventFilters = (): React.ReactElement | null => {
+    const shouldShow = occurrence === 'count' ? operator : true;
+    if (!selectedEventType || !shouldShow) return null;
+
+    const stepNumber =
+      occurrence === 'count' && operator
+        ? timeframe !== undefined
+          ? '6'
+          : '5'
+        : timeframe !== undefined
+        ? '4'
+        : '3';
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">
+            {stepNumber}. Event Property Filters (Optional)
+          </label>
+          <button
+            type="button"
+            onClick={handleAddFilter}
+            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          >
+            + Add Filter
+          </button>
+        </div>
+
+        {eventFilters.length > 0 && (
+          <div className="space-y-3">
+            {eventFilters.map((filter, index) => (
+              <div
+                key={filter.id}
+                className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-medium text-gray-500">
+                    Filter {index + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFilter(index)}
+                    className="text-xs text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                {/* Filter inputs */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Field name */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Property Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., form_id, page_url"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={filter.field}
+                      onChange={(e) =>
+                        handleFilterChange(index, {
+                          ...filter,
+                          field: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* Operator */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Operator
+                    </label>
+                    <select
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={filter.operator}
+                      onChange={(e) =>
+                        handleFilterChange(index, {
+                          ...filter,
+                          operator: e.target
+                            .value as PropertyRuleCondition['operator'],
+                        })
+                      }
+                    >
+                      <option value="equals">Equals</option>
+                      <option value="not_equals">Not equals</option>
+                      <option value="contains">Contains</option>
+                      <option value="not_contains">Not contains</option>
+                      <option value="greater_than">Greater than</option>
+                      <option value="less_than">Less than</option>
+                      <option value="is_empty">Is empty</option>
+                      <option value="is_not_empty">Is not empty</option>
+                    </select>
+                  </div>
+
+                  {/* Value */}
+                  {filter.operator !== 'is_empty' &&
+                    filter.operator !== 'is_not_empty' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Value
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter value"
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={filter.value}
+                          onChange={(e) =>
+                            handleFilterChange(index, {
+                              ...filter,
+                              value: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+                </div>
+              </div>
+            ))}
+
+            <p className="text-xs text-gray-500 mt-2">
+              Filters are combined with AND logic. All filters must match for
+              the event to qualify.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render condition preview
   const renderPreview = (): React.ReactElement | null => {
     if (!selectedEventType) return null;
@@ -380,6 +556,12 @@ function ActivityRuleForm({
 
     if (timeframe) {
       previewText += ` in the last ${timeframe} days`;
+    }
+
+    if (eventFilters.length > 0) {
+      previewText += ` [${eventFilters.length} filter${
+        eventFilters.length > 1 ? 's' : ''
+      }]`;
     }
 
     return (
@@ -405,6 +587,9 @@ function ActivityRuleForm({
 
       {/* Step 3/5: Timeframe */}
       {renderTimeframeSelector()}
+
+      {/* Step 4/5/6: Event Property Filters */}
+      {renderEventFilters()}
 
       {/* Action Buttons */}
       {onCancel && (
