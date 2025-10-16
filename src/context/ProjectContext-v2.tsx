@@ -76,6 +76,8 @@ const initialState: ProjectState = {
   loading: false,
   error: null,
   validationErrors: [],
+  hasCorruptData: false,
+  corruptDataWarnings: [],
 };
 
 function projectReducer(state: ProjectState, action: ProjectAction): ProjectState {
@@ -294,6 +296,21 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
         savedAt: action.payload,
       };
 
+    // Data corruption tracking (Issue #29)
+    case 'SET_CORRUPT_DATA_WARNING':
+      return {
+        ...state,
+        hasCorruptData: true,
+        corruptDataWarnings: [...state.corruptDataWarnings, action.payload],
+      };
+
+    case 'CLEAR_CORRUPT_DATA_WARNINGS':
+      return {
+        ...state,
+        hasCorruptData: false,
+        corruptDataWarnings: [],
+      };
+
     default:
       return state;
   }
@@ -320,6 +337,34 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     };
 
     loadProjects();
+  }, []);
+
+  // Listen for data corruption events (Issue #29)
+  useEffect(() => {
+    const handleCorruptionDetected = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { type, count, corruptTags, severity } = customEvent.detail;
+
+      dispatch({
+        type: 'SET_CORRUPT_DATA_WARNING',
+        payload: {
+          type,
+          count,
+          details: corruptTags.map((ct: any) => ({
+            id: ct.tag?.id || 'unknown',
+            errors: ct.errors,
+          })),
+          severity,
+          detectedAt: new Date().toISOString(),
+        },
+      });
+    };
+
+    window.addEventListener('data-corruption-detected', handleCorruptionDetected);
+
+    return () => {
+      window.removeEventListener('data-corruption-detected', handleCorruptionDetected);
+    };
   }, []);
 
   /**
@@ -356,15 +401,24 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [state.currentProject, state.clientProfile, state.dataModel, state.tags, state.journeys]);
 
   // Auto-save current project every 30 seconds
+  // SAFETY: Auto-save disabled when corrupt data detected (Issue #29)
   useEffect(() => {
     if (!state.currentProject) return;
+
+    // Block auto-save if corrupt data detected to prevent permanent data loss
+    if (state.hasCorruptData) {
+      console.warn(
+        `[Data Integrity] Auto-save disabled: Project contains ${state.corruptDataWarnings.length} corrupt data issue(s)`
+      );
+      return;
+    }
 
     const interval = setInterval(() => {
       saveProject();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [state.currentProject, saveProject]);
+  }, [state.currentProject, state.hasCorruptData, saveProject]);
 
   /**
    * Create a new project

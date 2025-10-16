@@ -12,6 +12,7 @@ import TagLibrary from './features/tag-library/TagLibrary';
 import JourneySimulator from './features/journey-simulator/JourneySimulator';
 import Exporter from './features/exporter/Exporter';
 import MigrationPrompt from './components/MigrationPrompt';
+import CorruptDataBanner from './components/ui/CorruptDataBanner';
 import { needsMigration } from './utils/migrateToSupabase';
 
 /**
@@ -71,6 +72,9 @@ function AppContent() {
           </Route>
         </Routes>
       </Router>
+
+      {/* Corrupt Data Banner - Critical warning for data integrity (Issue #29) */}
+      <CorruptDataBanner />
 
       {/* Migration Prompt - shows when localStorage projects detected */}
       {showMigration && (

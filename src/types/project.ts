@@ -6,6 +6,7 @@ import { Tag, TagCollection, ValidationError } from './tag';
 
 // Re-export Tag for convenience
 export type { Tag };
+export type { CorruptDataWarning };
 
 // Project Types
 export interface Project {
@@ -76,6 +77,18 @@ export interface JourneyStage {
   description?: string;
 }
 
+// Data Corruption Tracking Types
+export interface CorruptDataWarning {
+  type: 'corrupt_tags' | 'corrupt_objects' | 'corrupt_fields';
+  count: number;
+  details: Array<{
+    id: string;
+    errors: unknown;
+  }>;
+  severity: 'critical' | 'warning';
+  detectedAt: string;
+}
+
 // Project State
 export interface ProjectState {
   currentProject: string | null;
@@ -88,6 +101,9 @@ export interface ProjectState {
   loading: boolean;
   error: string | null;
   validationErrors: ValidationError[];
+  // Data corruption tracking (Issue #29)
+  hasCorruptData: boolean;
+  corruptDataWarnings: CorruptDataWarning[];
 }
 
 // Project Actions (matching actual reducer implementation)
@@ -113,7 +129,10 @@ export type ProjectAction =
   | { type: 'DELETE_TAG'; payload: string }
   | { type: 'ADD_TAG_FROM_LIBRARY'; payload: Tag }
   | { type: 'UPDATE_JOURNEYS'; payload: Journey[] }
-  | { type: 'UPDATE_SAVED_AT'; payload: string };
+  | { type: 'UPDATE_SAVED_AT'; payload: string }
+  // Data corruption actions (Issue #29)
+  | { type: 'SET_CORRUPT_DATA_WARNING'; payload: CorruptDataWarning }
+  | { type: 'CLEAR_CORRUPT_DATA_WARNINGS' };
 
 // ProjectContextValue is defined and exported from ProjectContext-v2.tsx
 // to ensure types match the actual implementation
