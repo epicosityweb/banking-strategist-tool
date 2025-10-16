@@ -541,9 +541,13 @@ This project uses git worktrees for isolated development and code reviews. Workt
 # Manual creation
 git worktree add -b feature-name .worktrees/feature-name
 
+# ⚠️ IMPORTANT: Copy environment variables immediately!
+cp strategist-tool/.env.local .worktrees/feature-name/strategist-tool/.env.local
+
 # Via workflow command (recommended)
 /workflows/work https://github.com/org/repo/issues/[number]
 # Creates worktree automatically
+# ⚠️ Still requires manual .env.local copy (see Environment Variables section below)
 ```
 
 **For Code Reviews:**
@@ -551,6 +555,7 @@ git worktree add -b feature-name .worktrees/feature-name
 # Via workflow command (recommended)
 /workflows/review [PR-number]
 # Creates review worktree automatically
+# ⚠️ Still requires manual .env.local copy (see Environment Variables section below)
 ```
 
 ### Worktree Lifecycle
@@ -595,6 +600,68 @@ The `check-worktree-status.sh` hook runs on every session start and provides:
 - PR status: `gh pr list --state all`
 - Last commit date: `git log -1 --format=%ct`
 - Remote branch existence: `git ls-remote --heads origin`
+
+### Environment Variables in Worktrees
+
+**IMPORTANT:** When creating a new worktree, environment variables are NOT automatically copied. You must manually copy the `.env.local` file to the worktree.
+
+**Symptom:**
+- Dev server fails to start or loads without Supabase connection
+- Authentication errors: "Supabase client configuration missing"
+- Console errors: `VITE_SUPABASE_URL is not defined`
+- Blank login page or missing data
+
+**Root Cause:**
+Git worktrees share the Git repository but have separate working directories. The `.env.local` file (which is gitignored) is not tracked by Git and therefore not present in the worktree.
+
+**Immediate Fix:**
+```bash
+# After creating a worktree, copy environment variables
+cp strategist-tool/.env.local .worktrees/[worktree-name]/strategist-tool/.env.local
+
+# Example:
+cp strategist-tool/.env.local .worktrees/issue-29-data-loss-prevention/strategist-tool/.env.local
+```
+
+**Automated Solution (Recommended):**
+Add to your worktree creation workflow:
+
+```bash
+# Create worktree
+git worktree add -b feature-name .worktrees/feature-name
+
+# Copy environment variables automatically
+if [ -f "strategist-tool/.env.local" ]; then
+  cp strategist-tool/.env.local .worktrees/feature-name/strategist-tool/.env.local
+  echo "✅ Copied .env.local to worktree"
+else
+  echo "⚠️  WARNING: strategist-tool/.env.local not found!"
+fi
+```
+
+**Verification:**
+```bash
+# Check that .env.local exists in worktree
+ls -la .worktrees/[worktree-name]/strategist-tool/.env.local
+
+# Verify variables are loaded
+cd .worktrees/[worktree-name]/strategist-tool
+npm run dev
+# Check console for "Connected to Supabase" message or successful data loading
+```
+
+**Best Practice Checklist:**
+- [ ] Create worktree
+- [ ] Copy `.env.local` to worktree immediately
+- [ ] Verify `.env.local` exists in worktree's strategist-tool directory
+- [ ] Start dev server and verify Supabase connection
+- [ ] Check browser console for successful authentication
+
+**Why This Happens:**
+1. `.env.local` is listed in `.gitignore` (correct for security)
+2. Git worktrees only contain Git-tracked files
+3. Environment files must be manually replicated per worktree
+4. Each worktree has its own `node_modules` and `.env.local`
 
 ### Best Practices
 
