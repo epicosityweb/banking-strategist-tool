@@ -2,7 +2,30 @@ import IStorageAdapter from './IStorageAdapter';
 import { generateId } from '../../utils/idGenerator';
 import { supabase } from '../../lib/supabase';
 import { customObjectSchema, fieldSchema as customFieldSchema } from '../../schemas/objectSchema';
+import {
+  tagCategorySchema,
+  tagBehaviorSchema,
+  qualificationRulesSchema,
+} from '../../schemas/tagSchema';
 import { z } from 'zod';
+
+// Storage-compatible tag schema (dates as ISO strings)
+// Based on tagSchema but adapted for JSONB storage
+const storageTagSchema = z.object({
+  id: z.string().min(1, 'Tag ID is required'),
+  name: z.string().min(2).max(100),
+  category: tagCategorySchema,
+  description: z.string().min(10).max(500),
+  icon: z.string().min(1),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  behavior: tagBehaviorSchema,
+  isPermanent: z.boolean(),
+  qualificationRules: qualificationRulesSchema,
+  dependencies: z.array(z.string()).optional().default([]),
+  isCustom: z.boolean().default(false),
+  createdAt: z.union([z.date(), z.string()]).optional(), // Accept Date or ISO string
+  updatedAt: z.union([z.date(), z.string()]).optional(), // Accept Date or ISO string
+});
 
 // Project schema for validation
 // Must match TypeScript Project interface (src/types/project.ts)
@@ -18,8 +41,8 @@ const projectSchema = z.object({
     associations: z.array(z.any()).optional(),
   }).optional(),
   tags: z.object({                            // Changed from array to object to match TagCollection interface
-    library: z.array(z.any()),
-    custom: z.array(z.any()),
+    library: z.array(storageTagSchema),       // Validate using storage-compatible tag schema
+    custom: z.array(storageTagSchema),        // Validate using storage-compatible tag schema
   }).optional(),
   journeys: z.array(z.any()).optional(),
   createdAt: z.string().optional(),
