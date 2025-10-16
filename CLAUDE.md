@@ -91,6 +91,50 @@ Ready to start the next feature? Check PROJECT-STATUS.md
 for the next milestone.
 ```
 
+### Worktree Lifecycle Management
+
+**IMPORTANT:** This project uses git worktrees for feature development and code reviews. You will receive automatic worktree status updates on session start via the `check-worktree-status.sh` hook.
+
+**Worktree States:**
+
+**🟢 ACTIVE** - Keep these worktrees:
+- PR is open and under review
+- Commits ahead of main, PR not yet created
+- Recent activity (< 7 days since last commit)
+- **Recommendation:** Continue working
+
+**🟡 STALE** - Clean up these worktrees:
+- PR merged to main
+- Branch merged to main
+- Work is complete
+- **Recommendation:** Remove worktree, delete local/remote branches
+
+**🔴 ORPHANED** - Priority cleanup:
+- Remote branch deleted
+- 14+ days since last commit
+- No PR or PR closed without merge
+- **Recommendation:** Investigate then remove
+
+**When you see stale worktrees:**
+1. Verify PR is indeed merged (check GitHub)
+2. Confirm no uncommitted work: `cd .worktrees/[name] && git status`
+3. Remove worktree: `git worktree remove .worktrees/[name]`
+4. Delete local branch: `git branch -d [branch-name]`
+5. Delete remote branch (if exists): `git push origin --delete [branch-name]`
+
+**After Completing Feature Work:**
+When you create a PR and it gets merged, remind the user:
+```
+✅ PR #[number] merged successfully!
+
+Worktree cleanup recommended:
+- Remove worktree: git worktree remove .worktrees/[name]
+- Delete local branch: git branch -d [branch-name]
+- Delete remote branch: git push origin --delete [branch-name]
+
+The worktree status hook will flag this automatically on next session.
+```
+
 ### Status Check Template
 
 At the start of EVERY conversation, provide this status update:
@@ -382,6 +426,126 @@ PR #28 demonstrated the full todo workflow:
    - Live testing verified
 
 See completed todos in `todos/` directory for reference patterns.
+
+---
+
+## Worktree Management
+
+This project uses git worktrees for isolated development and code reviews. Worktrees are automatically tracked and managed via Claude Hooks.
+
+### Current Worktrees
+
+**Status tracked via SessionStart hook** - Automatically loaded on conversation start
+
+**Worktree Directory Structure:**
+```
+.worktrees/
+├── reviews/                  # Code review worktrees
+│   └── pr-[number]/         # Isolated PR review environments
+└── [feature-branch-name]/   # Feature development worktrees
+```
+
+### Creating Worktrees
+
+**For Feature Development:**
+```bash
+# Manual creation
+git worktree add -b feature-name .worktrees/feature-name
+
+# Via workflow command (recommended)
+/workflows/work https://github.com/org/repo/issues/[number]
+# Creates worktree automatically
+```
+
+**For Code Reviews:**
+```bash
+# Via workflow command (recommended)
+/workflows/review [PR-number]
+# Creates review worktree automatically
+```
+
+### Worktree Lifecycle
+
+```
+Creation → Active Development → PR Merged → STALE → Cleanup
+    ↓                                           ↓
+    └─────────── Hook Detection ───────────────┘
+```
+
+**1. Creation (ACTIVE):**
+- Worktree created via workflow command or manually
+- Branch ahead of main with unmerged commits
+- PR open or not yet created
+- Hook shows: 🟢 ACTIVE - Keep for ongoing work
+
+**2. Completion (STALE):**
+- PR merged to main
+- Branch merged to main
+- Hook shows: 🟡 STALE - Ready for cleanup
+- **Action needed:** Remove worktree
+
+**3. Cleanup:**
+```bash
+# Recommended cleanup sequence
+git worktree remove .worktrees/[name]
+git branch -d [branch-name]
+git push origin --delete [branch-name]
+```
+
+### Automatic Detection
+
+The `check-worktree-status.sh` hook runs on every session start and provides:
+- ✅ Real-time worktree status
+- ✅ PR merge detection via GitHub CLI
+- ✅ Staleness calculation (days since last commit)
+- ✅ Specific cleanup commands for each worktree
+- ✅ Categorization (ACTIVE/STALE/ORPHANED)
+
+**What gets checked:**
+- Branch merge status: `git branch --merged main`
+- PR status: `gh pr list --state all`
+- Last commit date: `git log -1 --format=%ct`
+- Remote branch existence: `git ls-remote --heads origin`
+
+### Best Practices
+
+**✅ DO:**
+- Use worktrees for all feature development (keeps main clean)
+- Use worktrees for all code reviews (no context switching)
+- Clean up worktrees after PR merge
+- Check worktree status at session start
+
+**❌ DON'T:**
+- Develop features directly in main directory
+- Leave stale worktrees after PR merge
+- Create worktrees without clear purpose
+- Forget to delete remote branches after cleanup
+
+### Troubleshooting
+
+**Worktree removal fails:**
+```bash
+# If worktree has uncommitted changes
+cd .worktrees/[name]
+git status  # Check what's uncommitted
+git stash   # Save changes if needed
+
+# Remove worktree (force if necessary)
+git worktree remove .worktrees/[name] --force
+```
+
+**Branch deletion fails:**
+```bash
+# Local branch not merged
+git branch -D [branch]  # Force delete
+
+# Remote branch protection
+gh api repos/:owner/:repo/branches/[branch]/protection --method DELETE
+```
+
+**See Also:**
+- [docs/compounding-engineering-workflow.md](../docs/compounding-engineering-workflow.md#worktree-lifecycle-and-cleanup) - Worktree philosophy
+- [.claude/hooks/README.md](../.claude/hooks/README.md) - Hook implementation details
 
 ---
 
