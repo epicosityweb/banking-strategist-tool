@@ -1,8 +1,17 @@
 {
-  "name": "strategist-tool",
+  "name": "banking-strategist-tool",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Interactive banking journey orchestration planning tool - Configure client implementations with HubSpot field mappings, custom tags, and journey simulations",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/epicosityweb/banking-strategist-tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/epicosityweb/banking-strategist-tool/issues"
+  },
+  "homepage": "https://github.com/epicosityweb/banking-strategist-tool#readme",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

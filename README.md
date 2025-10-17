@@ -1,5 +1,11 @@
 # Banking Journey Strategist Tool
 
+**Formerly part of**: [banking-orchestration-framework-explainer](https://github.com/epicosityweb/banking-orchestration-framework-explainer)
+
+> **Migration Note**: This project was extracted from a larger monorepo on October 17, 2025. All 49 commits of history have been preserved. See [MIGRATION.md](MIGRATION.md) for details.
+
+---
+
 An interactive configuration platform for designing and planning Banking Journey Orchestration Framework implementations.
 
 ## Overview
