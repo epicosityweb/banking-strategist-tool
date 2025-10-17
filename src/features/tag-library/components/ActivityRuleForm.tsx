@@ -12,7 +12,7 @@
  * and TypeScript safety throughout.
  */
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useRef, memo } from 'react';
 import type { ActivityRuleCondition } from '../../../types/tag';
 import {
   HUBSPOT_STANDARD_EVENTS,
@@ -109,25 +109,35 @@ function ActivityRuleForm({
   // Get grouped events for categorized display
   const eventsByCategory = getEventsByCategory();
 
-  // Update parent when any field changes
-  useEffect(() => {
-    if (isMountedRef.current && selectedEventType) {
-      const newCondition: ActivityRuleCondition = {
-        eventType: selectedEventType,
-        occurrence,
-        ...(occurrence === 'count' && operator
-          ? { operator, value: countValue }
-          : {}),
-        ...(timeframe ? { timeframe } : {}),
-      };
-      onChange(newCondition);
-    }
+  // Build condition from current form state
+  const buildCondition = (): ActivityRuleCondition | null => {
+    if (!selectedEventType) return null;
 
-    // Cleanup function to mark component as unmounted
-    return () => {
-      isMountedRef.current = false;
+    const newCondition: ActivityRuleCondition = {
+      eventType: selectedEventType,
+      occurrence,
+      ...(occurrence === 'count' && operator
+        ? { operator, value: countValue }
+        : {}),
+      ...(timeframe ? { timeframe } : {}),
     };
-  }, [selectedEventType, occurrence, operator, countValue, timeframe, onChange]);
+    return newCondition;
+  };
+
+  // Handle Add Condition button click
+  const handleAddClick = (): void => {
+    const condition = buildCondition();
+    if (condition) {
+      onChange(condition);
+      // Reset form after adding
+      setSelectedEventType('');
+      setOccurrence('has_occurred');
+      setOperator('');
+      setCountValue(1);
+      setTimeframe(undefined);
+      setShowCustomTimeframe(false);
+    }
+  };
 
   // Determine if operator and value are needed
   const needsOperatorAndValue = (): boolean => {
@@ -407,8 +417,8 @@ function ActivityRuleForm({
       {renderTimeframeSelector()}
 
       {/* Action Buttons */}
-      {onCancel && (
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        {onCancel && (
           <button
             type="button"
             onClick={onCancel}
@@ -416,24 +426,19 @@ function ActivityRuleForm({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedEventType) {
-                // Condition is already being updated via useEffect
-                // This button could trigger a save/confirm action
-              }
-            }}
-            disabled={
-              !selectedEventType ||
-              (occurrence === 'count' && (!operator || countValue < 0))
-            }
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Add Condition
-          </button>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          onClick={handleAddClick}
+          disabled={
+            !selectedEventType ||
+            (occurrence === 'count' && (!operator || countValue < 0))
+          }
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add Condition
+        </button>
+      </div>
 
       {/* Preview */}
       {renderPreview()}
