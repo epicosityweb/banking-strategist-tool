@@ -104,6 +104,24 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
   // Handle adding a new condition with unique ID
   // Accepts any RuleCondition type (Property, Activity, Association, Score)
   const handleAddCondition = useCallback((condition: RuleCondition): void => {
+    // Check for duplicate conditions to prevent rapid double-clicks
+    // Compare essential fields (excluding id) to detect duplicates
+    const isDuplicate = rules.conditions.some(existing => {
+      // Create comparison objects without id fields
+      const existingWithoutId = { ...existing };
+      delete existingWithoutId.id;
+      const newWithoutId = { ...condition };
+      delete newWithoutId.id;
+
+      // Deep comparison using JSON.stringify
+      return JSON.stringify(existingWithoutId) === JSON.stringify(newWithoutId);
+    });
+
+    if (isDuplicate) {
+      console.warn('[RuleBuilder] Duplicate condition ignored (rapid click detected)');
+      return; // Prevent duplicate submission
+    }
+
     const conditionWithId = {
       ...condition,
       id: condition.id || generateId(), // Ensure every condition has a unique ID

@@ -11,9 +11,11 @@
  * and TypeScript safety throughout.
  */
 
-import { useState, useRef, memo } from 'react';
+import { useState, memo } from 'react';
+import toast from 'react-hot-toast';
 import type { PropertyRuleCondition } from '../../../types/tag';
 import type { CustomObject } from '../../../types/project';
+import { getUserFriendlyError, logError } from '../../../utils/errorMessages';
 
 export interface PropertyRuleFormProps {
   /** Current property rule condition being edited */
@@ -100,9 +102,6 @@ function PropertyRuleForm({
   );
   const [value, setValue] = useState<unknown>(condition?.value ?? '');
 
-  // Track mounted state to prevent updates after unmount
-  const isMountedRef = useRef<boolean>(true);
-
   // Find selected object details
   const currentObject = objects.find(obj => obj.name === selectedObject);
   const currentField = currentObject?.fields.find(field => field.name === selectedField);
@@ -129,18 +128,67 @@ function PropertyRuleForm({
   const handleAddClick = (): void => {
     const condition = buildCondition();
     if (condition) {
-      onChange(condition);
-      // Reset form after adding
-      setSelectedObject('');
-      setSelectedField('');
-      setSelectedOperator('');
-      setValue('');
+      try {
+        onChange(condition);
+        // Reset form only on successful add
+        setSelectedObject('');
+        setSelectedField('');
+        setSelectedOperator('');
+        setValue('');
+      } catch (error) {
+        // Preserve form state on error
+        logError('PropertyRuleForm', 'add condition', error);
+
+        // Show user-friendly error message (sanitized for security)
+        const userMessage = getUserFriendlyError(error);
+        toast.error(`Failed to add condition: ${userMessage}`, {
+          duration: 5000,
+        });
+      }
     }
   };
 
   // Determine if operator needs a value input
   const needsValue = (operator: PropertyRuleCondition['operator']): boolean => {
     return operator !== 'is_known' && operator !== 'is_unknown';
+  };
+
+  // Validate value based on operator and field type
+  const isValueValid = (
+    operator: PropertyRuleCondition['operator'],
+    value: unknown,
+    fieldType: string
+  ): boolean => {
+    if (!needsValue(operator)) return true; // is_known/is_unknown don't need values
+
+    // Check existence first
+    if (value === '' || value === undefined || value === null) return false;
+
+    // Operator-specific validation
+    switch (operator) {
+      case 'between':
+        // Must be array with 2 valid numbers where min <= max
+        if (!Array.isArray(value) || value.length !== 2) return false;
+        const [min, max] = value as number[];
+        if (!isFinite(min) || !isFinite(max)) return false;
+        return min <= max; // Prevent inverted ranges
+
+      case 'in':
+      case 'not_in':
+        // Must be non-empty array with valid elements
+        if (!Array.isArray(value)) return false;
+        return value.length > 0 && value.every(v => v !== '' && v !== null);
+
+      default:
+        // For standard operators, check type-specific validity
+        if (fieldType === 'number') {
+          return typeof value === 'number' && isFinite(value);
+        }
+        if (fieldType === 'text') {
+          return typeof value === 'string' && value.trim().length > 0; // Prevent whitespace-only
+        }
+        return value !== '' && value !== null;
+    }
   };
 
   // Handle object selection
@@ -188,7 +236,8 @@ function PropertyRuleForm({
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
               onChange={(e) => {
                 const current = Array.isArray(value) ? value : [0, 0];
-                setValue([parseFloat(e.target.value) || 0, current[1] || 0]);
+                const parsed = parseFloat(e.target.value);
+                setValue([isFinite(parsed) ? parsed : 0, current[1] || 0]);
               }}
             />
             <span className="text-gray-500">to</span>
@@ -198,7 +247,8 @@ function PropertyRuleForm({
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
               onChange={(e) => {
                 const current = Array.isArray(value) ? value : [0, 0];
-                setValue([current[0] || 0, parseFloat(e.target.value) || 0]);
+                const parsed = parseFloat(e.target.value);
+                setValue([current[0] || 0, isFinite(parsed) ? parsed : 0]);
               }}
             />
           </div>
@@ -236,7 +286,10 @@ function PropertyRuleForm({
               placeholder="Enter number"
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               value={typeof value === 'number' ? value : ''}
-              onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const parsed = parseFloat(e.target.value);
+                setValue(isFinite(parsed) ? parsed : 0);
+              }}
             />
           </div>
         );
@@ -366,7 +419,12 @@ function PropertyRuleForm({
         <button
           type="button"
           onClick={handleAddClick}
-          disabled={!selectedObject || !selectedField || !selectedOperator}
+          disabled={
+            !selectedObject ||
+            !selectedField ||
+            !selectedOperator ||
+            !isValueValid(selectedOperator, value, currentField?.type || 'text')
+          }
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Add Condition
@@ -393,6 +451,7 @@ function PropertyRuleForm({
 export default memo(PropertyRuleForm, (prevProps, nextProps) => {
   return (
     prevProps.condition === nextProps.condition &&
+    prevProps.onChange === nextProps.onChange &&
     prevProps.objects === nextProps.objects &&
     prevProps.onCancel === nextProps.onCancel
   );

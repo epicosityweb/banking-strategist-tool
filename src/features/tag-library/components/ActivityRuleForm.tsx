@@ -12,7 +12,8 @@
  * and TypeScript safety throughout.
  */
 
-import { useState, useRef, memo } from 'react';
+import { useState, memo } from 'react';
+import toast from 'react-hot-toast';
 import type { ActivityRuleCondition } from '../../../types/tag';
 import {
   HUBSPOT_STANDARD_EVENTS,
@@ -21,6 +22,7 @@ import {
   getEventDisplayName,
   validateCustomEventFormat,
 } from '../../../data/hubspotEventTypes';
+import { getUserFriendlyError, logError } from '../../../utils/errorMessages';
 
 export interface ActivityRuleFormProps {
   /** Current activity rule condition being edited */
@@ -103,9 +105,6 @@ function ActivityRuleForm({
   );
   const [showCustomTimeframe, setShowCustomTimeframe] = useState(false);
 
-  // Track mounted state to prevent updates after unmount
-  const isMountedRef = useRef<boolean>(true);
-
   // Get grouped events for categorized display
   const eventsByCategory = getEventsByCategory();
 
@@ -119,7 +118,7 @@ function ActivityRuleForm({
       ...(occurrence === 'count' && operator
         ? { operator, value: countValue }
         : {}),
-      ...(timeframe ? { timeframe } : {}),
+      ...(timeframe && timeframe > 0 ? { timeframe } : {}),
     };
     return newCondition;
   };
@@ -128,14 +127,25 @@ function ActivityRuleForm({
   const handleAddClick = (): void => {
     const condition = buildCondition();
     if (condition) {
-      onChange(condition);
-      // Reset form after adding
-      setSelectedEventType('');
-      setOccurrence('has_occurred');
-      setOperator('');
-      setCountValue(1);
-      setTimeframe(undefined);
-      setShowCustomTimeframe(false);
+      try {
+        onChange(condition);
+        // Reset form only on successful add
+        setSelectedEventType('');
+        setOccurrence('has_occurred');
+        setOperator('');
+        setCountValue(1);
+        setTimeframe(undefined);
+        setShowCustomTimeframe(false);
+      } catch (error) {
+        // Preserve form state on error
+        logError('ActivityRuleForm', 'add condition', error);
+
+        // Show user-friendly error message (sanitized for security)
+        const userMessage = getUserFriendlyError(error);
+        toast.error(`Failed to add condition: ${userMessage}`, {
+          duration: 5000,
+        });
+      }
     }
   };
 
@@ -300,7 +310,7 @@ function ActivityRuleForm({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={countValue}
               onChange={(e) =>
-                setCountValue(Math.max(0, parseInt(e.target.value) || 0))
+                setCountValue(Math.max(0, parseInt(e.target.value, 10) || 0))
               }
             />
           </div>
@@ -360,8 +370,8 @@ function ActivityRuleForm({
                 className="w-24 px-3 py-2 border border-gray-300 rounded-md"
                 value={timeframe || ''}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  setTimeframe(value > 0 ? value : undefined);
+                  const value = parseInt(e.target.value, 10);
+                  setTimeframe(!isNaN(value) && value > 0 ? value : undefined);
                 }}
               />
               <span className="text-sm text-gray-600">days</span>
@@ -450,6 +460,7 @@ function ActivityRuleForm({
 export default memo(ActivityRuleForm, (prevProps, nextProps) => {
   return (
     prevProps.condition === nextProps.condition &&
+    prevProps.onChange === nextProps.onChange &&
     prevProps.onCancel === nextProps.onCancel
   );
 });
