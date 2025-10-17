@@ -11,7 +11,7 @@
  * and TypeScript safety throughout.
  */
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useRef, memo } from 'react';
 import type { PropertyRuleCondition } from '../../../types/tag';
 import type { CustomObject } from '../../../types/project';
 
@@ -112,23 +112,31 @@ function PropertyRuleForm({
     ? OPERATORS_BY_TYPE[currentField.type] || OPERATORS_BY_TYPE.text
     : [];
 
-  // Update parent when any field changes
-  useEffect(() => {
-    if (isMountedRef.current && selectedObject && selectedField && selectedOperator) {
-      const newCondition: PropertyRuleCondition = {
-        object: selectedObject,
-        field: selectedField,
-        operator: selectedOperator,
-        value: needsValue(selectedOperator) ? value : undefined,
-      };
-      onChange(newCondition);
-    }
+  // Build condition from current form state
+  const buildCondition = (): PropertyRuleCondition | null => {
+    if (!selectedObject || !selectedField || !selectedOperator) return null;
 
-    // Cleanup function to mark component as unmounted
-    return () => {
-      isMountedRef.current = false;
+    const newCondition: PropertyRuleCondition = {
+      object: selectedObject,
+      field: selectedField,
+      operator: selectedOperator,
+      value: needsValue(selectedOperator) ? value : undefined,
     };
-  }, [selectedObject, selectedField, selectedOperator, value, onChange]);
+    return newCondition;
+  };
+
+  // Handle Add Condition button click
+  const handleAddClick = (): void => {
+    const condition = buildCondition();
+    if (condition) {
+      onChange(condition);
+      // Reset form after adding
+      setSelectedObject('');
+      setSelectedField('');
+      setSelectedOperator('');
+      setValue('');
+    }
+  };
 
   // Determine if operator needs a value input
   const needsValue = (operator: PropertyRuleCondition['operator']): boolean => {
@@ -345,8 +353,8 @@ function PropertyRuleForm({
       {selectedOperator && renderValueInput()}
 
       {/* Action Buttons */}
-      {onCancel && (
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        {onCancel && (
           <button
             type="button"
             onClick={onCancel}
@@ -354,21 +362,16 @@ function PropertyRuleForm({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedObject && selectedField && selectedOperator) {
-                // Condition is already being updated via useEffect
-                // This button could trigger a save/confirm action
-              }
-            }}
-            disabled={!selectedObject || !selectedField || !selectedOperator}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Add Condition
-          </button>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          onClick={handleAddClick}
+          disabled={!selectedObject || !selectedField || !selectedOperator}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add Condition
+        </button>
+      </div>
 
       {/* Preview */}
       {selectedObject && selectedField && selectedOperator && (

@@ -102,7 +102,8 @@ function RuleBuilder({ rules, onChange, dataModel, errors }: RuleBuilderProps) {
   }, [rules, onChange]);
 
   // Handle adding a new condition with unique ID
-  const handleAddCondition = useCallback((condition: PropertyRuleCondition): void => {
+  // Accepts any RuleCondition type (Property, Activity, Association, Score)
+  const handleAddCondition = useCallback((condition: RuleCondition): void => {
     const conditionWithId = {
       ...condition,
       id: condition.id || generateId(), // Ensure every condition has a unique ID
